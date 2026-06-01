@@ -1,5 +1,20 @@
 <?php
 /** 管理画面の共通レイアウト */
+
+/** 現在の admin スクリプト名（拡張子なし） */
+function adm_current_page() {
+    return basename($_SERVER['SCRIPT_NAME'] ?? '', '.php');
+}
+
+/** ナビリンク1件 */
+function adm_nav_link($href, $icon, $label, array $activeOn) {
+    $cur   = adm_current_page();
+    $active = in_array($cur, $activeOn, true) ? ' active' : '';
+    $iconHtml = $icon !== '' ? '<i class="fa-solid ' . htmlspecialchars($icon) . '" aria-hidden="true"></i> ' : '';
+    return '<a href="' . htmlspecialchars($href) . '" class="adm-nav-item' . $active . '">'
+        . $iconHtml . '<span>' . htmlspecialchars($label) . '</span></a>';
+}
+
 function admin_head($title, $showNav = true) {
     global $config;
     ?>
@@ -21,18 +36,37 @@ function admin_head($title, $showNav = true) {
 <header class="adm-nav">
   <div class="adm-nav-inner">
     <a href="index.php" class="adm-brand"><?= htmlspecialchars($config['company_name_ja']) ?> <span>SHOP 管理</span></a>
-    <nav class="adm-links">
-      <a href="index.php"><i class="fa-solid fa-box"></i> 商品一覧</a>
-      <a href="edit.php"><i class="fa-solid fa-plus"></i> 新規追加</a>
-      <a href="featured.php"><i class="fa-solid fa-star"></i> おすすめ</a>
-      <a href="categories.php"><i class="fa-solid fa-tags"></i> カテゴリ</a>
-      <a href="media.php"><i class="fa-solid fa-images"></i> 画像管理</a>
-      <a href="banners.php"><i class="fa-solid fa-panorama"></i> バナー管理</a>
-      <a href="import.php"><i class="fa-solid fa-file-excel"></i> Excel取込</a>
-      <a href="check.php"><i class="fa-solid fa-stethoscope"></i> 保存チェック</a>
-      <a href="migrate.php"><i class="fa-solid fa-database"></i> DB移行</a>
-      <a href="../index.php" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> サイトを見る</a>
-      <a href="logout.php" class="adm-logout"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</a>
+    <nav class="adm-links" aria-label="管理メニュー">
+      <div class="adm-nav-group">
+        <span class="adm-nav-label">商品</span>
+        <div class="adm-nav-group-links">
+          <?= adm_nav_link('index.php', 'fa-box', '商品一覧', ['index', 'delete']) ?>
+          <?= adm_nav_link('edit.php', 'fa-plus', '新規追加', ['edit']) ?>
+          <?= adm_nav_link('featured.php', 'fa-star', 'おすすめ', ['featured']) ?>
+          <?= adm_nav_link('categories.php', 'fa-tags', 'カテゴリ', ['categories']) ?>
+          <?= adm_nav_link('media.php', 'fa-images', '画像管理', ['media']) ?>
+          <?= adm_nav_link('import.php', 'fa-file-excel', 'Excel取込', ['import']) ?>
+        </div>
+      </div>
+      <div class="adm-nav-group">
+        <span class="adm-nav-label">サイト</span>
+        <div class="adm-nav-group-links">
+          <?= adm_nav_link('banners.php', 'fa-panorama', 'バナー', ['banners']) ?>
+        </div>
+      </div>
+      <div class="adm-nav-group adm-nav-group--test">
+        <span class="adm-nav-label">テスト</span>
+        <div class="adm-nav-group-links">
+          <?= adm_nav_link('check.php', 'fa-stethoscope', '保存チェック', ['check']) ?>
+          <?= adm_nav_link('migrate.php', 'fa-database', 'DB移行', ['migrate']) ?>
+        </div>
+      </div>
+      <div class="adm-nav-group adm-nav-group--util">
+        <div class="adm-nav-group-links">
+          <a href="../index.php" target="_blank" rel="noopener" class="adm-nav-item"><i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i><span>サイトを見る</span></a>
+          <a href="logout.php" class="adm-nav-item adm-logout"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>ログアウト</span></a>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
