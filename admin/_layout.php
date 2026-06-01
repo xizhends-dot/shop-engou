@@ -87,10 +87,10 @@ function admin_head($title, $showNav = true) {
     <a href="index.php" class="adm-brand"><?= htmlspecialchars($config['company_name_ja']) ?> <span><?= htmlspecialchars(__('nav.brand_suffix')) ?></span></a>
     <nav class="adm-links" aria-label="<?= htmlspecialchars(__('nav.menu')) ?>">
       <?= adm_nav_top_link('index.php', 'fa-gauge-high', __('nav.console'), '', '', ['index']) ?>
-      <?= adm_nav_top_link('guide.php', 'fa-book', __('nav.guide'), '', '', ['guide']) ?>
       <?= adm_nav_dropdown(__('nav.products'), 'fa-box', $productItems) ?>
       <?= adm_nav_dropdown(__('nav.site'), 'fa-globe', $siteItems) ?>
       <?= adm_nav_dropdown(__('nav.test'), 'fa-flask', $testItems, 'adm-dropdown--test') ?>
+      <?= adm_nav_top_link('guide.php', 'fa-book', __('nav.guide'), '', '', ['guide']) ?>
       <?= admin_lang_switcher_html() ?>
       <div class="adm-nav-util">
         <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', __('nav.view_site'), '', ' target="_blank" rel="noopener"') ?>
