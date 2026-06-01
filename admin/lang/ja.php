@@ -69,6 +69,7 @@ return [
     'flash.banner_pick_file' => '画像ファイルを選択してください。',
     'flash.banner_not_found' => '対象のバナーが見つかりませんでした。',
     'flash.banner_upload_fail' => '画像のアップロードに失敗しました。形式・サイズを確認してください。',
+    'flash.banner_save_fail' => '保存に失敗しました。data/ フォルダの書き込み権限を確認してください。',
     'flash.folder_created' => 'フォルダ「{name}」を作成しました。',
     'flash.folder_name_invalid' => 'フォルダ名は半角英数・ハイフン・アンダースコア（1〜64文字）で入力してください。',
     'flash.image_deleted' => '画像を削除しました{extra}',

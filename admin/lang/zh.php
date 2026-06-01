@@ -69,6 +69,7 @@ return [
     'flash.banner_pick_file' => '请选择图片文件。',
     'flash.banner_not_found' => '未找到该 Banner。',
     'flash.banner_upload_fail' => '图片上传失败，请检查格式与大小。',
+    'flash.banner_save_fail' => '保存失败，请检查 data/ 目录是否可写。',
     'flash.folder_created' => '已创建文件夹「{name}」。',
     'flash.folder_name_invalid' => '文件夹名须为半角英数字、连字符或下划线（1–64 字符）。',
     'flash.image_deleted' => '图片已删除{extra}',

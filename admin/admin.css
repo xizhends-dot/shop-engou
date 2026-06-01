@@ -361,10 +361,6 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .banner-admin-meta input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; font-family: inherit; }
 .banner-admin-actions { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; min-width: 88px; }
 .banner-admin-actions .adm-btn { justify-content: center; }
-.banner-replace-form { margin: 0; }
-.banner-replace-btn { cursor: pointer; position: relative; }
-.banner-replace-input { position: absolute; width: 0; height: 0; opacity: 0; overflow: hidden; pointer-events: none; }
-.banner-replace-btn:has(.banner-replace-input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 640px) {
   .adm-grid { grid-template-columns: 1fr; gap: 0; }

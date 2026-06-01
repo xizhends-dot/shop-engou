@@ -13,8 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $keys = ['eyebrow', 'title', 'subtitle', 'btn1_text', 'btn1_link', 'btn2_text', 'btn2_link'];
         $s = [];
         foreach ($keys as $kk) { $s[$kk] = trim((string)($_POST[$kk] ?? '')); }
-        banner_settings_save($s);
-        set_flash(__('flash.banner_settings_saved'));
+        if (banner_settings_save($s)) {
+            set_flash(__('flash.banner_settings_saved'));
+        } else {
+            set_flash(__('flash.banner_save_fail'), 'err');
+        }
         header('Location: banners.php'); exit;
     }
 
@@ -61,8 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
         }
-        banners_save($new);
-        set_flash(__('flash.saved'));
+        if (banners_save($new)) {
+            set_flash(__('flash.saved'));
+        } else {
+            set_flash(__('flash.banner_save_fail'), 'err');
+        }
         header('Location: banners.php'); exit;
     }
 
@@ -223,15 +229,9 @@ admin_head(__('page.banners'));
         <input type="text" name="link[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['link']) ?>" placeholder="例: list.php / product.php?id=nano-shower">
       </div>
       <div class="banner-admin-actions">
-        <form method="post" enctype="multipart/form-data" class="banner-replace-form">
-          <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
-          <input type="hidden" name="action" value="replace">
-          <input type="hidden" name="path" value="<?= htmlspecialchars($b['image']) ?>">
-          <label class="adm-btn adm-btn-sm banner-replace-btn" title="<?= htmlspecialchars(__('btn.replace')) ?>">
-            <i class="fa-solid fa-image"></i> <?= htmlspecialchars(__('btn.replace')) ?>
-            <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" class="banner-replace-input">
-          </label>
-        </form>
+        <button type="button" class="adm-btn adm-btn-sm js-replace" data-path="<?= htmlspecialchars($b['image'], ENT_QUOTES) ?>" title="<?= htmlspecialchars(__('btn.replace')) ?>">
+          <i class="fa-solid fa-image"></i> <?= htmlspecialchars(__('btn.replace')) ?>
+        </button>
         <button type="button" class="adm-btn adm-btn-sm js-up" title="<?= htmlspecialchars(__('btn.up')) ?>"><i class="fa-solid fa-arrow-up"></i></button>
         <button type="button" class="adm-btn adm-btn-sm js-down" title="<?= htmlspecialchars(__('btn.down')) ?>"><i class="fa-solid fa-arrow-down"></i></button>
         <button type="button" class="adm-btn adm-btn-sm adm-btn-danger js-del" title="<?= htmlspecialchars(__('btn.delete')) ?>"><i class="fa-solid fa-trash"></i></button>
@@ -244,16 +244,42 @@ admin_head(__('page.banners'));
   </div>
 </form>
 
-<!-- 削除用の単独フォーム（JSで送信） -->
+<!-- 削除・差し替え用（メインフォームの外に置く — ネスト form 禁止） -->
 <form method="post" id="delForm" style="display:none;">
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
   <input type="hidden" name="action" value="delete">
   <input type="hidden" name="path" id="delPath">
 </form>
+<form method="post" id="replaceForm" enctype="multipart/form-data" style="display:none;">
+  <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
+  <input type="hidden" name="action" value="replace">
+  <input type="hidden" name="path" id="replacePath">
+  <input type="file" name="file" id="replaceFile" accept="image/jpeg,image/png,image/webp,image/gif">
+</form>
 
 <script>
 (function () {
   var list = document.getElementById('bannerList');
+  var replaceForm = document.getElementById('replaceForm');
+  var replacePath = document.getElementById('replacePath');
+  var replaceFile = document.getElementById('replaceFile');
+
+  list.querySelectorAll('.js-replace').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      replacePath.value = btn.dataset.path || '';
+      replaceFile.value = '';
+      replaceFile.click();
+    });
+  });
+  replaceFile.addEventListener('change', function () {
+    if (!replaceFile.files || !replaceFile.files.length) return;
+    if (!confirm(<?= json_encode(__('banner.replace_confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
+      replaceFile.value = '';
+      return;
+    }
+    replaceForm.submit();
+  });
+
   // 上下移動
   list.querySelectorAll('.js-up').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -265,17 +291,6 @@ admin_head(__('page.banners'));
     b.addEventListener('click', function () {
       var item = b.closest('.banner-admin-item');
       if (item.nextElementSibling) list.insertBefore(item.nextElementSibling, item);
-    });
-  });
-  // 画像差し替え：ファイル選択後に送信
-  list.querySelectorAll('.banner-replace-input').forEach(function (inp) {
-    inp.addEventListener('change', function () {
-      if (!inp.files || !inp.files.length) return;
-      if (!confirm(<?= json_encode(__('banner.replace_confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
-        inp.value = '';
-        return;
-      }
-      inp.closest('form').submit();
     });
   });
   // 削除
