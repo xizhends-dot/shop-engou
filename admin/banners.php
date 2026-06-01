@@ -66,6 +66,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: banners.php'); exit;
     }
 
+    if ($act === 'replace') {
+        $path = (string)($_POST['path'] ?? '');
+        if (!banner_admin_valid_path($path)) {
+            set_flash('不正な画像パスです。', 'err');
+            header('Location: banners.php'); exit;
+        }
+        if (empty($_FILES['file']['tmp_name']) || ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            set_flash('画像ファイルを選択してください。', 'err');
+            header('Location: banners.php'); exit;
+        }
+        $banners = banners_load();
+        $idx = -1;
+        foreach ($banners as $i => $b) {
+            if ($b['image'] === $path) {
+                $idx = $i;
+                break;
+            }
+        }
+        if ($idx < 0) {
+            set_flash('対象のバナーが見つかりませんでした。', 'err');
+            header('Location: banners.php'); exit;
+        }
+        $uploadErr = '';
+        $rel = store_handle_upload($_FILES['file'], BANNER_DIR, BANNER_REL, $uploadErr);
+        if ($rel === null || $rel === '') {
+            set_flash($uploadErr !== '' ? $uploadErr : '画像のアップロードに失敗しました。形式・サイズを確認してください。', 'err');
+            header('Location: banners.php'); exit;
+        }
+        $old = $banners[$idx];
+        $banners[$idx] = [
+            'image'    => $rel,
+            'link'     => $old['link'] ?? '',
+            'title'    => $old['title'] ?? '',
+            'subtitle' => $old['subtitle'] ?? '',
+        ];
+        banners_save($banners);
+        if ($rel !== $path) {
+            store_delete_image($path);
+        }
+        set_flash('バナー画像を差し替えました。');
+        header('Location: banners.php'); exit;
+    }
+
     if ($act === 'delete') {
         $path = (string)($_POST['path'] ?? '');
         $banners = array_values(array_filter(banners_load(), function ($b) use ($path) { return $b['image'] !== $path; }));
@@ -74,6 +117,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         set_flash('バナーを削除しました。');
         header('Location: banners.php'); exit;
     }
+}
+
+/** バナー画像パスが images/banners 配下か検証 */
+function banner_admin_valid_path($rel) {
+    if ($rel === '' || strpos($rel, '..') !== false) {
+        return false;
+    }
+    $rel = str_replace('\\', '/', $rel);
+    if (strpos($rel, BANNER_REL . '/') !== 0) {
+        return false;
+    }
+    $abs = SHOP_BASE . '/' . $rel;
+    $base = realpath(BANNER_DIR);
+    $file = realpath($abs);
+    return $base && $file && is_file($file) && strpos($file, $base) === 0;
 }
 
 $banners  = banners_load();
@@ -166,6 +224,15 @@ admin_head('バナー管理');
         <input type="text" name="link[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['link']) ?>" placeholder="例: list.php / product.php?id=nano-shower">
       </div>
       <div class="banner-admin-actions">
+        <form method="post" enctype="multipart/form-data" class="banner-replace-form">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
+          <input type="hidden" name="action" value="replace">
+          <input type="hidden" name="path" value="<?= htmlspecialchars($b['image']) ?>">
+          <label class="adm-btn adm-btn-sm banner-replace-btn" title="画像を差し替え">
+            <i class="fa-solid fa-image"></i> 差し替え
+            <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" class="banner-replace-input">
+          </label>
+        </form>
         <button type="button" class="adm-btn adm-btn-sm js-up" title="上へ"><i class="fa-solid fa-arrow-up"></i></button>
         <button type="button" class="adm-btn adm-btn-sm js-down" title="下へ"><i class="fa-solid fa-arrow-down"></i></button>
         <button type="button" class="adm-btn adm-btn-sm adm-btn-danger js-del" title="削除"><i class="fa-solid fa-trash"></i></button>
@@ -199,6 +266,17 @@ admin_head('バナー管理');
     b.addEventListener('click', function () {
       var item = b.closest('.banner-admin-item');
       if (item.nextElementSibling) list.insertBefore(item.nextElementSibling, item);
+    });
+  });
+  // 画像差し替え：ファイル選択後に送信
+  list.querySelectorAll('.banner-replace-input').forEach(function (inp) {
+    inp.addEventListener('change', function () {
+      if (!inp.files || !inp.files.length) return;
+      if (!confirm('このバナーの画像を差し替えますか？')) {
+        inp.value = '';
+        return;
+      }
+      inp.closest('form').submit();
     });
   });
   // 削除
