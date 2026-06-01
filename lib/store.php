@@ -440,6 +440,12 @@ function store_health_report() {
         'ok'     => $hasMb,
         'detail' => $hasMb ? '利用可能' : '未インストール（iconv があれば動作可能）',
     ];
+    $zipOk = class_exists('ZipArchive');
+    $items[] = [
+        'label'  => 'zip 拡張（Excel .xlsx）',
+        'ok'     => $zipOk,
+        'detail' => $zipOk ? '利用可能' : '未インストール — Excel 一括取込に必要',
+    ];
     $eucSample = "\xA5\xB7\xA5\xC3\xA5\xEF"; // EUC-JP「シャウ」相当のバイト列（1366 の典型）
     $norm      = store_utf8_normalize($eucSample);
     $convOk    = ($norm !== $eucSample && store_utf8_conversion_ok($norm));
