@@ -4,7 +4,7 @@ admin_require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf'] ?? '')) {
     set_flash('不正なリクエストです。', 'err');
-    header('Location: index.php');
+    header('Location: products.php');
     exit;
 }
 
@@ -30,5 +30,5 @@ if ($idx >= 0) {
     set_flash('対象の商品が見つかりませんでした。', 'err');
 }
 
-header('Location: index.php');
+header('Location: products.php');
 exit;

@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (store_save($data)) {
                 set_flash($isEdit ? '商品を更新しました。' : '商品を追加しました。');
-                header('Location: index.php');
+                header('Location: products.php');
                 exit;
             } else {
                 $errors[] = store_save_error_message();
@@ -148,7 +148,7 @@ admin_head($isEdit ? '商品を編集' : '商品を追加');
 ?>
 <div class="adm-head">
   <h2><?= $isEdit ? '商品を編集' : '商品を追加' ?></h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
 </div>
 
 <?php if (!empty($errors)): ?>
@@ -298,7 +298,7 @@ admin_head($isEdit ? '商品を編集' : '商品を追加');
 
   <div class="adm-formfoot">
     <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
-    <a href="index.php" class="adm-btn">キャンセル</a>
+    <a href="products.php" class="adm-btn">キャンセル</a>
   </div>
 </form>
 

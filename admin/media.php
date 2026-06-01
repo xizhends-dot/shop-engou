@@ -158,7 +158,7 @@ $crumbs = $cur === '' ? [] : explode('/', $cur);
 ?>
 <div class="adm-head">
   <h2>画像管理</h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
 </div>
 
 <!-- 操作（アップロード + 新規フォルダ）：上部・全幅 -->

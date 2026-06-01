@@ -36,9 +36,14 @@ function adm_nav_dropdown($label, $icon, array $items, $modifier = '') {
     return $html;
 }
 
-function adm_nav_top_link($href, $icon, $label, $extraClass = '', $attrs = '') {
+function adm_nav_top_link($href, $icon, $label, $extraClass = '', $attrs = '', array $activeOn = null) {
+    $cur = adm_current_page();
+    if ($activeOn === null) {
+        $activeOn = [basename($href, '.php')];
+    }
+    $active = in_array($cur, $activeOn, true) ? ' active' : '';
     $iconHtml = $icon !== '' ? '<i class="fa-solid ' . htmlspecialchars($icon) . '" aria-hidden="true"></i>' : '';
-    $cls = 'adm-nav-top' . ($extraClass !== '' ? ' ' . htmlspecialchars($extraClass) : '');
+    $cls = 'adm-nav-top' . $active . ($extraClass !== '' ? ' ' . htmlspecialchars($extraClass) : '');
     return '<a href="' . htmlspecialchars($href) . '" class="' . $cls . '"' . $attrs . '>' . $iconHtml
         . '<span>' . htmlspecialchars($label) . '</span></a>';
 }
@@ -47,7 +52,7 @@ function admin_head($title, $showNav = true) {
     global $config;
 
     $productItems = [
-        ['index.php', 'fa-box', '商品一覧', ['index', 'delete']],
+        ['products.php', 'fa-list', '商品一覧', ['products', 'delete']],
         ['edit.php', 'fa-plus', '新規追加', ['edit']],
         ['featured.php', 'fa-star', 'おすすめ', ['featured']],
         ['categories.php', 'fa-tags', 'カテゴリ', ['categories']],
@@ -81,11 +86,12 @@ function admin_head($title, $showNav = true) {
   <div class="adm-nav-inner">
     <a href="index.php" class="adm-brand"><?= htmlspecialchars($config['company_name_ja']) ?> <span>SHOP 管理</span></a>
     <nav class="adm-links" aria-label="管理メニュー">
+      <?= adm_nav_top_link('index.php', 'fa-gauge-high', '控制台', '', '', ['index']) ?>
       <?= adm_nav_dropdown('商品', 'fa-box', $productItems) ?>
       <?= adm_nav_dropdown('サイト', 'fa-globe', $siteItems) ?>
       <?= adm_nav_dropdown('テスト', 'fa-flask', $testItems, 'adm-dropdown--test') ?>
       <div class="adm-nav-util">
-        <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', 'サイトを見る') ?>
+        <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', 'サイトを見る', '', ' target="_blank" rel="noopener"') ?>
         <?= adm_nav_top_link('logout.php', 'fa-right-from-bracket', 'ログアウト', 'adm-logout') ?>
       </div>
     </nav>

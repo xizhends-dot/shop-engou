@@ -93,7 +93,7 @@ admin_head('Excel取込');
 ?>
 <div class="adm-head">
   <h2>Excel 取込・書き出し</h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
 </div>
 
 <?php if (!$zipOk): ?>

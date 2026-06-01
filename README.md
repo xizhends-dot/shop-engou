@@ -28,7 +28,8 @@ shop/
 ├── admin/                # ★后台管理
 │   ├── login.php         # 登录
 │   ├── logout.php        # 退出
-│   ├── index.php         # 商品列表
+│   ├── index.php         # 控制台（概览・统计）
+│   ├── products.php      # 商品列表
 │   ├── edit.php          # 新增/编辑（含多图上传、删图）
 │   ├── delete.php        # 删除
 │   ├── featured.php      # おすすめ商品（首页推荐位）管理

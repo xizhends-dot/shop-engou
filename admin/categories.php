@@ -77,7 +77,7 @@ admin_head('カテゴリ管理');
 ?>
 <div class="adm-head">
   <h2>カテゴリ管理 <span class="adm-count"><?= count($cats) ?> 件</span></h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
 </div>
 
 <!-- 既存カテゴリ -->

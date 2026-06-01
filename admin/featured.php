@@ -30,7 +30,7 @@ admin_head('おすすめ商品');
 ?>
 <div class="adm-head">
   <h2>おすすめ商品 <span class="adm-count">トップに表示（最大<?= $max ?>件）</span></h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
 </div>
 
 <p class="adm-note" style="margin-bottom:16px;">

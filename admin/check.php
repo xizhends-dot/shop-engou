@@ -13,7 +13,7 @@ admin_head('保存チェック');
 ?>
 <div class="adm-head">
   <h2>保存チェック</h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 控制台へ</a>
 </div>
 
 <div class="adm-flash adm-flash-<?= $allOk ? 'ok' : 'err' ?>">

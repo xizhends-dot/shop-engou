@@ -38,7 +38,7 @@ admin_head('データ移行（JSON → MySQL）');
 ?>
 <div class="adm-head">
   <h2>データ移行：JSON → MySQL</h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 一覧へ</a>
+  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 控制台へ</a>
 </div>
 
 <?php if ($result): ?>
