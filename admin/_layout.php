@@ -29,6 +29,8 @@ function admin_head($title, $showNav = true) {
       <a href="media.php"><i class="fa-solid fa-images"></i> 画像管理</a>
       <a href="banners.php"><i class="fa-solid fa-panorama"></i> バナー管理</a>
       <a href="import.php"><i class="fa-solid fa-file-csv"></i> CSV取込</a>
+      <a href="check.php"><i class="fa-solid fa-stethoscope"></i> 保存チェック</a>
+      <a href="migrate.php"><i class="fa-solid fa-database"></i> DB移行</a>
       <a href="../index.php" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> サイトを見る</a>
       <a href="logout.php" class="adm-logout"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</a>
     </nav>

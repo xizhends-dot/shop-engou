@@ -133,10 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: index.php');
                 exit;
             } else {
-                $dbErr = store_last_error();
-                $errors[] = $dbErr !== ''
-                    ? 'データの保存に失敗しました: ' . $dbErr
-                    : 'データの保存に失敗しました（MySQL 接続・表構造、または data/ の権限をご確認ください）。';
+                $errors[] = store_save_error_message();
             }
         }
     }

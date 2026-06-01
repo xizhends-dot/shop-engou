@@ -20,8 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['categories'][$slug]['icon'] = trim((string)($icons[$slug] ?? '')) ?: 'fa-tag';
             }
         }
-        store_save($data);
-        set_flash('カテゴリを保存しました。');
+        if (store_save($data)) {
+            set_flash('カテゴリを保存しました。');
+        } else {
+            set_flash(store_save_error_message(), 'err');
+        }
         header('Location: categories.php'); exit;
     }
 
@@ -37,8 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash('カテゴリ名を入力してください。', 'err');
         } else {
             $data['categories'][$slug] = ['name' => $name, 'icon' => $icon];
-            store_save($data);
-            set_flash('カテゴリ「' . $name . '」を追加しました。');
+            if (store_save($data)) {
+                set_flash('カテゴリ「' . $name . '」を追加しました。');
+            } else {
+                set_flash(store_save_error_message(), 'err');
+            }
         }
         header('Location: categories.php'); exit;
     }
@@ -52,8 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash('このカテゴリには商品があるため削除できません（先に商品のカテゴリを変更してください）。', 'err');
         } else {
             unset($data['categories'][$slug]);
-            store_save($data);
-            set_flash('カテゴリを削除しました。');
+            if (store_save($data)) {
+                set_flash('カテゴリを削除しました。');
+            } else {
+                set_flash(store_save_error_message(), 'err');
+            }
         }
         header('Location: categories.php'); exit;
     }

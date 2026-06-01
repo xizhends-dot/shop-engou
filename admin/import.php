@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'rows' => $rowErrors,
                     ];
                 } else {
-                    $errors[] = 'データの保存に失敗しました（data/ の書き込み権限をご確認ください）。';
+                    $errors[] = store_save_error_message();
                 }
             } else {
                 $report = ['ok' => '取り込める有効な行がありませんでした。', 'rows' => $rowErrors];

@@ -24,7 +24,7 @@ if ($idx >= 0) {
     if (store_save($data)) {
         set_flash('商品を削除しました。');
     } else {
-        set_flash('削除に失敗しました（書き込み権限をご確認ください）。', 'err');
+        set_flash(store_save_error_message(), 'err');
     }
 } else {
     set_flash('対象の商品が見つかりませんでした。', 'err');

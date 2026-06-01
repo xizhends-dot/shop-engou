@@ -66,7 +66,19 @@ function store_driver() {
    どちらも ['categories' => [...], 'products' => [...]] を扱う。
    ================================================================ */
 function store_load() {
-    return store_driver() === 'mysql' ? store_load_mysql() : store_load_json();
+    store_set_last_error('');
+    if (store_driver() === 'mysql') {
+        try {
+            return store_load_mysql();
+        } catch (Throwable $e) {
+            store_set_last_error($e->getMessage());
+            if (is_file(STORE_FILE)) {
+                return store_load_json();
+            }
+            return store_seed();
+        }
+    }
+    return store_load_json();
 }
 function store_save($data) {
     store_set_last_error('');
@@ -107,10 +119,38 @@ function store_load_json() {
 
 function store_save_json($data) {
     $dir = dirname(STORE_FILE);
-    if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+    if (!is_dir($dir)) {
+        if (!@mkdir($dir, 0775, true)) {
+            store_set_last_error('data/ フォルダを作成できません（親ディレクトリの書き込み権限を確認してください）');
+            return false;
+        }
+    }
+    if (!is_writable($dir)) {
+        store_set_last_error('data/ に書き込みできません（例: chmod 775 shop/data 、Webサーバーユーザーへの chown）');
+        return false;
+    }
     $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { return false; }
-    return file_put_contents(STORE_FILE, $json, LOCK_EX) !== false;
+    if ($json === false) {
+        store_set_last_error('JSON のエンコードに失敗しました');
+        return false;
+    }
+    if (file_put_contents(STORE_FILE, $json, LOCK_EX) === false) {
+        store_set_last_error('products.json の保存に失敗しました（ディスク容量・権限を確認）');
+        return false;
+    }
+    return true;
+}
+
+/** 保存失敗時の画面用メッセージ（ストレージ種別に応じた案内） */
+function store_save_error_message() {
+    $err = store_last_error();
+    if ($err !== '') {
+        return 'データの保存に失敗しました: ' . $err;
+    }
+    if (store_driver() === 'mysql') {
+        return 'データの保存に失敗しました（config.php の MySQL 接続・db/schema.sql のテーブル作成をご確認。詳細は「保存チェック」ページ）。';
+    }
+    return 'データの保存に失敗しました（shop/data/ の書き込み権限をご確認ください）。';
 }
 
 /* ---------------- MySQL ドライバ ---------------- */
@@ -165,8 +205,8 @@ function store_load_mysql() {
 
 /** 全データをトランザクションで置き換え（呼び出し側は配列全体を渡す） */
 function store_save_mysql($data) {
-    $pdo = db_connect();
     try {
+        $pdo = db_connect();
         $pdo->beginTransaction();
         $pdo->exec('DELETE FROM product_images');
         $pdo->exec('DELETE FROM products');
@@ -195,11 +235,86 @@ function store_save_mysql($data) {
         }
         $pdo->commit();
         return true;
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+    } catch (Throwable $e) {
+        if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         store_set_last_error($e->getMessage());
         return false;
     }
+}
+
+/** 管理画面用：保存まわりの診断（接続・権限・テーブル） */
+function store_health_report() {
+    $driver = store_driver();
+    $items  = [
+        [
+            'label'  => '保存方式 (config.php → storage)',
+            'ok'     => true,
+            'detail' => $driver === 'mysql' ? 'mysql' : 'json',
+        ],
+    ];
+
+    $dataDir = SHOP_BASE . '/data';
+    $dataOk  = is_dir($dataDir) && is_writable($dataDir);
+    $items[] = [
+        'label'  => 'data/ フォルダ',
+        'ok'     => $dataOk,
+        'detail' => $dataOk
+            ? '書き込み可能'
+            : (is_dir($dataDir) ? '書き込み不可 — chmod 775 または chown を設定' : '存在しません — 作成できない可能性あり'),
+    ];
+
+    $imgDir = UPLOAD_DIR;
+    $imgOk  = is_dir($imgDir) ? is_writable($imgDir) : @mkdir($imgDir, 0775, true);
+    $items[] = [
+        'label'  => 'images/products/',
+        'ok'     => (bool)$imgOk,
+        'detail' => $imgOk ? '書き込み可能' : '画像アップロード用フォルダに書き込みできません',
+    ];
+
+    if ($driver === 'mysql') {
+        $cfg = shop_config();
+        $db  = $cfg['db'] ?? [];
+        $items[] = [
+            'label'  => 'MySQL 設定',
+            'ok'     => !empty($db['name']) && !empty($db['user']),
+            'detail' => sprintf('host=%s port=%s db=%s user=%s',
+                $db['host'] ?? '127.0.0.1', $db['port'] ?? 3306, $db['name'] ?? '(未設定)', $db['user'] ?? '(未設定)'),
+        ];
+        try {
+            $pdo = db_connect();
+            $items[] = ['label' => 'MySQL 接続', 'ok' => true, 'detail' => '接続成功'];
+            foreach (['categories', 'products', 'product_images'] as $table) {
+                try {
+                    $pdo->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
+                    $items[] = ['label' => "テーブル `{$table}`", 'ok' => true, 'detail' => 'OK'];
+                } catch (Throwable $e) {
+                    $items[] = [
+                        'label'  => "テーブル `{$table}`",
+                        'ok'     => false,
+                        'detail' => '未作成または参照不可 — db/schema.sql を phpMyAdmin でインポートしてください',
+                    ];
+                }
+            }
+        } catch (Throwable $e) {
+            $items[] = [
+                'label'  => 'MySQL 接続',
+                'ok'     => false,
+                'detail' => $e->getMessage(),
+            ];
+        }
+    } else {
+        $items[] = [
+            'label'  => 'products.json',
+            'ok'     => is_file(STORE_FILE) ? is_writable(STORE_FILE) : is_writable($dataDir),
+            'detail' => is_file(STORE_FILE)
+                ? (is_writable(STORE_FILE) ? '読み書き可能' : 'ファイルに書き込み不可')
+                : (is_writable($dataDir) ? '未作成（初回保存時に生成）' : 'data/ に書き込み不可'),
+        ];
+    }
+
+    return $items;
 }
 
 /* ---------------- 商品検索 ---------------- */
