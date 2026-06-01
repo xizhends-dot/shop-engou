@@ -15,6 +15,7 @@ $items   = array_slice($products, ($page - 1) * $perPage, $perPage);
 $from    = $total ? ($page - 1) * $perPage + 1 : 0;
 $to      = min($page * $perPage, $total);
 
+$token = csrf_token();
 admin_head(__('page.products'));
 ?>
 <div class="adm-head">
@@ -28,9 +29,32 @@ admin_head(__('page.products'));
 <?php if (empty($products)): ?>
   <div class="adm-empty"><?= htmlspecialchars(__('products.empty')) ?></div>
 <?php else: ?>
-<table class="adm-table">
+
+<div class="products-batch-bar">
+  <div class="products-batch-inner">
+    <span class="products-batch-hint"><?= htmlspecialchars(__('products.batch_hint')) ?></span>
+    <div class="products-batch-actions">
+      <button type="button" class="adm-btn adm-btn-sm" id="btnProdSelectPage"><i class="fa-solid fa-check-double" aria-hidden="true"></i><span><?= htmlspecialchars(__('products.select_page')) ?></span></button>
+      <button type="button" class="adm-btn adm-btn-sm" id="btnProdSelectNone"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span><?= htmlspecialchars(__('products.select_none')) ?></span></button>
+      <button type="button" class="adm-btn adm-btn-sm adm-btn-danger" id="btnProdBatchDelete" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i><span><?= htmlspecialchars(__('products.batch_delete')) ?> (<span id="prodSelCount">0</span>)</span></button>
+    </div>
+  </div>
+</div>
+
+<form method="post" id="prodBatchForm" action="delete.php" style="display:none;">
+  <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
+  <input type="hidden" name="page" value="<?= (int)$page ?>">
+  <div id="prodBatchIds"></div>
+</form>
+
+<table class="adm-table" id="productsTable">
   <thead>
     <tr>
+      <th class="adm-col-check" scope="col">
+        <label class="adm-check-label" title="<?= htmlspecialchars(__('products.select_page')) ?>">
+          <input type="checkbox" id="prodCheckAll" class="adm-check" aria-label="<?= htmlspecialchars(__('products.select_page')) ?>">
+        </label>
+      </th>
       <th class="adm-col-thumb"><?= htmlspecialchars(__('col.image')) ?></th>
       <th class="adm-col-id"><?= htmlspecialchars(__('col.product_id')) ?></th>
       <th class="adm-col-name"><?= htmlspecialchars(__('col.name')) ?></th>
@@ -45,7 +69,12 @@ admin_head(__('page.products'));
       $cat = $cats[$p['category']]['name'] ?? $p['category'];
       $delMsg = __('products.delete_confirm', ['name' => $p['name']]);
     ?>
-    <tr>
+    <tr data-product-id="<?= htmlspecialchars($p['id'], ENT_QUOTES) ?>">
+      <td class="adm-col-check">
+        <label class="adm-check-label">
+          <input type="checkbox" class="adm-check prod-cb" value="<?= htmlspecialchars($p['id'], ENT_QUOTES) ?>" data-name="<?= htmlspecialchars($p['name'], ENT_QUOTES) ?>" aria-label="<?= htmlspecialchars($p['name']) ?>">
+        </label>
+      </td>
       <td class="adm-col-thumb">
         <?php if ($thumb !== ''): ?>
           <img class="adm-thumb" src="../<?= htmlspecialchars($thumb) ?>" alt="">
@@ -60,11 +89,12 @@ admin_head(__('page.products'));
       <td class="adm-col-actions adm-actions">
         <div class="adm-actions-inner">
           <a class="adm-btn adm-btn-sm" href="edit.php?id=<?= urlencode($p['id']) ?>"><i class="fa-solid fa-pen"></i> <?= htmlspecialchars(__('btn.edit')) ?></a>
-          <a class="adm-btn adm-btn-sm" href="../product.php?id=<?= urlencode($p['id']) ?>" target="_blank"><i class="fa-solid fa-eye"></i></a>
+          <a class="adm-btn adm-btn-sm" href="../product.php?id=<?= urlencode($p['id']) ?>" target="_blank" rel="noopener"><i class="fa-solid fa-eye"></i></a>
           <form method="post" action="delete.php" class="adm-inline" onsubmit="return confirm(<?= json_encode($delMsg, JSON_UNESCAPED_UNICODE) ?>);">
-            <input type="hidden" name="csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+            <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
-            <button type="submit" class="adm-btn adm-btn-sm adm-btn-danger"><i class="fa-solid fa-trash"></i></button>
+            <input type="hidden" name="page" value="<?= (int)$page ?>">
+            <button type="submit" class="adm-btn adm-btn-sm adm-btn-danger" title="<?= htmlspecialchars(__('btn.delete')) ?>"><i class="fa-solid fa-trash"></i></button>
           </form>
         </div>
       </td>
@@ -86,5 +116,87 @@ admin_head(__('page.products'));
     'total' => $total, 'from' => $from, 'to' => $to, 'page' => $page, 'pages' => $pages,
 ])) ?></p>
 <?php endif; ?>
+
+<script>
+(function () {
+  var table = document.getElementById('productsTable');
+  if (!table) return;
+
+  var checkAll = document.getElementById('prodCheckAll');
+  var btnPage = document.getElementById('btnProdSelectPage');
+  var btnNone = document.getElementById('btnProdSelectNone');
+  var btnDel = document.getElementById('btnProdBatchDelete');
+  var selCount = document.getElementById('prodSelCount');
+  var batchForm = document.getElementById('prodBatchForm');
+  var batchIds = document.getElementById('prodBatchIds');
+  var confirmTpl = <?= json_encode(__('products.batch_delete_confirm'), JSON_UNESCAPED_UNICODE) ?>;
+
+  function boxes() {
+    return Array.prototype.slice.call(table.querySelectorAll('.prod-cb'));
+  }
+
+  function selected() {
+    return boxes().filter(function (cb) { return cb.checked; });
+  }
+
+  function refresh() {
+    var n = selected().length;
+    var all = boxes();
+    selCount.textContent = String(n);
+    btnDel.disabled = n === 0;
+    if (checkAll) {
+      checkAll.checked = all.length > 0 && n === all.length;
+      checkAll.indeterminate = n > 0 && n < all.length;
+    }
+  }
+
+  boxes().forEach(function (cb) {
+    cb.addEventListener('change', refresh);
+  });
+
+  if (checkAll) {
+    checkAll.addEventListener('change', function () {
+      var on = checkAll.checked;
+      boxes().forEach(function (cb) { cb.checked = on; });
+      refresh();
+    });
+  }
+
+  if (btnPage) {
+    btnPage.addEventListener('click', function () {
+      boxes().forEach(function (cb) { cb.checked = true; });
+      refresh();
+    });
+  }
+
+  if (btnNone) {
+    btnNone.addEventListener('click', function () {
+      boxes().forEach(function (cb) { cb.checked = false; });
+      if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
+      refresh();
+    });
+  }
+
+  if (btnDel) {
+    btnDel.addEventListener('click', function () {
+      var picked = selected();
+      if (!picked.length) return;
+      var msg = confirmTpl.replace('{n}', String(picked.length));
+      if (!confirm(msg)) return;
+      batchIds.innerHTML = '';
+      picked.forEach(function (cb) {
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'ids[]';
+        inp.value = cb.value;
+        batchIds.appendChild(inp);
+      });
+      batchForm.submit();
+    });
+  }
+
+  refresh();
+})();
+</script>
 <?php endif; ?>
 <?php admin_foot(); ?>

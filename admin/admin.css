@@ -193,6 +193,13 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .adm-table th { background: #fbfcfe; color: var(--text-dim); font-weight: 700; font-size: 12px; letter-spacing: .5px; }
 .adm-table tr:last-child td { border-bottom: none; }
 .adm-table code { background: #f0f2f6; padding: 2px 7px; border-radius: 5px; font-size: 12px; color: var(--accent-strong); word-break: break-all; }
+.adm-col-check { width: 44px; text-align: center; vertical-align: middle; }
+.adm-check-label { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: 0; }
+.adm-check { width: 17px; height: 17px; cursor: pointer; accent-color: var(--accent-strong); }
+.products-batch-bar { margin-bottom: 14px; }
+.products-batch-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.products-batch-hint { font-size: 13px; color: var(--text-dim); }
+.products-batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .adm-col-thumb { width: 76px; }
 .adm-col-id { width: 130px; }
 .adm-col-cat { width: 108px; }

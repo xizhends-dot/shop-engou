@@ -8,27 +8,71 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_check($_POST['csrf'] ?? '')) 
     exit;
 }
 
-$id = (string)($_POST['id'] ?? '');
-$data = store_load();
-$idx = store_find_index($data['products'], $id);
+$returnPage = max(1, (int)($_POST['page'] ?? 1));
 
-if ($idx >= 0) {
-    // 商品に紐づく画像を物理削除
-    foreach (($data['products'][$idx]['images'] ?? []) as $img) {
-        store_delete_product_image($img);
+$ids = [];
+if (isset($_POST['ids']) && is_array($_POST['ids'])) {
+    foreach ($_POST['ids'] as $raw) {
+        $id = trim((string)$raw);
+        if ($id !== '' && store_valid_id($id)) {
+            $ids[$id] = true;
+        }
     }
-    array_splice($data['products'], $idx, 1);
-    // おすすめ設定からも除外
-    $feat = array_values(array_filter(featured_load(), function ($x) use ($id) { return $x !== $id; }));
-    featured_save($feat);
-    if (store_save($data)) {
-        set_flash(__('flash.product_deleted'));
-    } else {
-        set_flash(store_save_error_message(), 'err');
+} elseif (trim((string)($_POST['id'] ?? '')) !== '') {
+    $id = trim((string)$_POST['id']);
+    if (store_valid_id($id)) {
+        $ids[$id] = true;
     }
-} else {
-    set_flash(__('flash.product_not_found'), 'err');
+}
+$ids = array_keys($ids);
+
+if ($ids === []) {
+    set_flash(__('flash.products_batch_none'), 'err');
+    header('Location: products.php?page=' . $returnPage);
+    exit;
 }
 
-header('Location: products.php');
+$data    = store_load();
+$deleted = 0;
+$remain  = [];
+
+foreach ($data['products'] as $p) {
+    if (isset($ids[$p['id']])) {
+        foreach (($p['images'] ?? []) as $img) {
+            store_delete_product_image($img);
+        }
+        $deleted++;
+    } else {
+        $remain[] = $p;
+    }
+}
+
+if ($deleted === 0) {
+    set_flash(__('flash.product_not_found'), 'err');
+    header('Location: products.php?page=' . $returnPage);
+    exit;
+}
+
+$data['products'] = $remain;
+$idSet            = array_flip($ids);
+$feat             = array_values(array_filter(featured_load(), function ($x) use ($idSet) {
+    return !isset($idSet[$x]);
+}));
+featured_save($feat);
+
+if (store_save($data)) {
+    if ($deleted === 1 && count($ids) === 1) {
+        set_flash(__('flash.product_deleted'));
+    } else {
+        set_flash(__('flash.products_deleted_batch', ['n' => $deleted]));
+    }
+} else {
+    set_flash(store_save_error_message(), 'err');
+}
+
+$perPage  = 20;
+$maxPage  = max(1, (int)ceil(count($remain) / $perPage));
+$returnPage = min($returnPage, $maxPage);
+
+header('Location: products.php?page=' . $returnPage);
 exit;
