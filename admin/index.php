@@ -97,6 +97,7 @@ admin_head(__('page.console'));
       <a href="categories.php" class="adm-dash-action"><i class="fa-solid fa-tags"></i> <?= htmlspecialchars(__('nav.categories')) ?></a>
       <a href="featured.php" class="adm-dash-action"><i class="fa-solid fa-star"></i> <?= htmlspecialchars(__('nav.featured')) ?></a>
       <a href="banners.php" class="adm-dash-action"><i class="fa-solid fa-panorama"></i> <?= htmlspecialchars(__('nav.banners')) ?></a>
+      <a href="guide.php" class="adm-dash-action"><i class="fa-solid fa-book"></i> <?= htmlspecialchars(__('nav.guide')) ?></a>
     </div>
   </section>
 

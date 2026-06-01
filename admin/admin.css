@@ -222,6 +222,26 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .adm-field small a { color: var(--accent-strong); text-decoration: underline; }
 .adm-color { width: 60px !important; height: 42px; padding: 4px !important; cursor: pointer; }
 .adm-note { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+
+/* 操作指引 */
+.adm-guide-intro { font-size: 14px; color: var(--text-dim); line-height: 1.65; margin-bottom: 20px; max-width: 720px; }
+.adm-guide-toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow); }
+.adm-guide-toc-title { display: block; font-size: 13px; font-weight: 800; color: var(--heading); margin-bottom: 10px; }
+.adm-guide-toc ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.adm-guide-toc a { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--accent-strong); padding: 6px 10px; border-radius: 8px; background: #f8f9fb; transition: background .15s; }
+.adm-guide-toc a:hover { background: #eef0f4; }
+.adm-guide-toc a i { font-size: 12px; opacity: .85; }
+.adm-guide-sections { display: flex; flex-direction: column; gap: 18px; }
+.adm-guide-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; box-shadow: var(--shadow); scroll-margin-top: 80px; }
+.adm-guide-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.adm-guide-card-head h3 { font-size: 17px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 10px; }
+.adm-guide-card-head h3 i { color: var(--accent-strong); }
+.adm-guide-steps { margin: 0; padding-left: 1.35em; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.6; color: var(--heading); }
+.adm-guide-steps li::marker { color: var(--accent-strong); font-weight: 700; }
+.adm-guide-steps code { font-size: 12px; background: #f3f4f7; padding: 2px 6px; border-radius: 4px; }
+.adm-guide-tip { margin-top: 14px; padding: 10px 12px; background: #f5f8e8; border-radius: 8px; font-size: 13px; color: var(--heading); line-height: 1.55; display: flex; gap: 8px; align-items: flex-start; }
+.adm-guide-tip i { color: var(--accent-strong); margin-top: 2px; flex-shrink: 0; }
+.adm-guide-foot { margin-top: 24px; font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 .adm-formfoot { display: flex; gap: 12px; margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--border); }
 
 /* IMAGE MANAGER（商品編集） */

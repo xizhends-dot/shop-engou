@@ -30,6 +30,11 @@ function __($key, array $replace = []) {
     return $s;
 }
 
+/** 管理画面文案（含有限 HTML 标签），仅用于受信的语言包字符串 */
+function __html($key, array $replace = []) {
+    return __($key, $replace);
+}
+
 function admin_title($pageKey) {
     return __($pageKey) . ' | ' . __('meta.admin_suffix');
 }
