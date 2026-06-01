@@ -1,0 +1,174 @@
+{
+    "categories": {
+        "beauty": {
+            "name": "美容家電",
+            "icon": "fa-wand-magic-sparkles"
+        },
+        "home": {
+            "name": "生活家電",
+            "icon": "fa-house-chimney"
+        },
+        "kitchen": {
+            "name": "キッチン",
+            "icon": "fa-utensils"
+        }
+    },
+    "products": [
+        {
+            "id": "nano-shower",
+            "category": "beauty",
+            "icon": "fa-shower",
+            "accent": "#def13f",
+            "images": [
+                "images/products/20260530_073522_246b9a35.jpg",
+                "images/products/20260530_073529_02bbb565.jpg",
+                "images/products/20260530_073529_a5eb113b.jpg",
+                "images/products/20260530_073529_59da8f99.jpg",
+                "images/products/20260530_073529_9b91581c.jpg",
+                "images/products/20260530_073529_9cfe770d.jpg",
+                "images/products/20260530_073529_9dfb1694.jpg",
+                "images/products/20260530_073529_58b9672e.jpg",
+                "images/products/20260530_073529_42481c71.jpg",
+                "images/products/20260530_073529_221d90af.jpg",
+                "images/products/20260530_073529_deae61d4.jpg",
+                "images/products/20260530_073529_fb8304b9.jpg",
+                "images/products/20260530_073529_7f51aa80.jpg",
+                "images/products/20260530_073529_e2739691.jpg",
+                "images/products/20260530_073529_8e110d2a.jpg",
+                "images/products/20260530_073529_0f286577.jpg",
+                "images/products/20260530_073529_f3bbcb95.jpg",
+                "images/products/20260530_073529_2012b256.jpg",
+                "images/products/20260530_073529_e56bbd95.jpg"
+            ],
+            "name": "シャワーヘッド ナノバブル 節水 塩素除去 マイクロバブル TOTO規格 アダプター4種 ウルトラ 交換フィルター付き ファイン",
+            "tag": "節水・高洗浄力・美肌美髪",
+            "price": 4980,
+            "badge": "人気No.1",
+            "desc": "商品名：小型サイクロン手持ち扇風機\r\n\r\n■肌に当ててどこでも冷やせる冷却プレート付き！体感温度-25℃で暑い夏もひんやり快適です。\r\n■3WAY（手持ち/卓上/冷却）仕様でどんなシーンでも大活躍します。\r\n■風量100段階＋冷却モード。簡単操作\r\n■コンパクト＆超軽量の330g。バッグの隙間やポケットにすっぽり収納できます。\r\n■使いやすいType-CのUSB充電式で、どこでも手軽に充電できます。\r\n\r\n材質：ABS+PC+電子部品\r\n製品サイズ：60*60*183mm\r\nバッテリー容量：3600mah",
+            "attributes": [
+                {
+                    "name": "カラー",
+                    "options": [
+                        "レッド",
+                        "ブラック",
+                        "ホワイト"
+                    ]
+                },
+                {
+                    "name": "サイズ",
+                    "options": [
+                        "M",
+                        "L"
+                    ]
+                }
+            ],
+            "rating": 4.5,
+            "reviews": 18614
+        },
+        {
+            "id": "ems-beauty",
+            "category": "beauty",
+            "icon": "fa-bolt",
+            "accent": "#9be15d",
+            "images": [],
+            "name": "EMS 美顔器 リフトケア",
+            "tag": "EMS・RF・LED 多機能",
+            "price": 12800,
+            "badge": "",
+            "desc": "EMS微電流・RF温熱・LED光ケアを1台に集約した多機能美顔器。自宅で手軽にハリのある肌へ。充電式コードレスで、毎日のスキンケアに取り入れやすい設計です。5段階の強度調整、防水設計でお風呂でもご使用いただけます。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "ion-dryer",
+            "category": "beauty",
+            "icon": "fa-wind",
+            "accent": "#7dd3fc",
+            "images": [],
+            "name": "高速ドライヤー マイナスイオン",
+            "tag": "大風量・速乾・うるおいケア",
+            "price": 8980,
+            "badge": "NEW",
+            "desc": "大風量モーターで髪を素早く乾かしながら、マイナスイオンで毛先までうるおいのある仕上がりに。温冷切り替えと軽量ボディ（約350g）で、毎日のヘアケアを快適に。静電気を抑え、まとまりのある髪へ導きます。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "sonic-toothbrush",
+            "category": "beauty",
+            "icon": "fa-tooth",
+            "accent": "#a5f3fc",
+            "images": [],
+            "name": "音波振動 電動歯ブラシ",
+            "tag": "高速振動・5モード・長持ちバッテリー",
+            "price": 3680,
+            "badge": "",
+            "desc": "毎分約38,000回の音波振動で歯垢を効果的に除去。クリーン・ホワイト・ケアなど5つのモードで歯ぐきにやさしくケア。1回の充電で約30日間使用できる省エネ設計。IPX7防水で丸洗いも可能です。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "cordless-vacuum",
+            "category": "home",
+            "icon": "fa-broom",
+            "accent": "#fca5a5",
+            "images": [],
+            "name": "コードレス スティック掃除機",
+            "tag": "軽量・強力吸引・コードレス",
+            "price": 15800,
+            "badge": "",
+            "desc": "強力なサイクロン吸引と軽量ボディを両立したコードレス掃除機。スティックからハンディへ2WAYで変形でき、床から机上、車内まで一台で対応。最大約45分の連続運転、水洗い可能なフィルターでお手入れも簡単です。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "aroma-humidifier",
+            "category": "home",
+            "icon": "fa-droplet",
+            "accent": "#93c5fd",
+            "images": [],
+            "name": "アロマ対応 超音波加湿器",
+            "tag": "静音・大容量・LEDライト",
+            "price": 4280,
+            "badge": "",
+            "desc": "超音波ミストでお部屋をうるおいで満たす加湿器。アロマオイル対応でリラックス空間を演出。大容量約2.5Lタンクと静音設計（約30dB）で、寝室やオフィスでも快適に。7色グラデーションのLEDライト付きです。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "temp-kettle",
+            "category": "kitchen",
+            "icon": "fa-mug-hot",
+            "accent": "#fcd34d",
+            "images": [],
+            "name": "温度調節 電気ケトル",
+            "tag": "1℃単位・保温・急速沸騰",
+            "price": 6480,
+            "badge": "",
+            "desc": "コーヒーや緑茶、ベビーミルクまで、用途に合わせて1℃単位（40〜100℃）で温度設定が可能。最大60分の保温機能付きで、いつでも適温の一杯を。急速沸騰、空焚き防止・自動オフ機能を搭載した安心設計です。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        },
+        {
+            "id": "hand-blender",
+            "category": "kitchen",
+            "icon": "fa-blender",
+            "accent": "#fdba74",
+            "images": [],
+            "name": "ハンディ ブレンダー 多機能",
+            "tag": "混ぜる・刻む・泡立て 1台4役",
+            "price": 5480,
+            "badge": "",
+            "desc": "ブレンド・チョップ・ホイップ・つぶしの1台4役。離乳食づくりからスムージー、スープまで幅広く活躍。無段階のスピード調整、アタッチメントは取り外して丸洗いでき、お手入れも簡単。静音＆低振動モーターを採用しています。",
+            "attributes": [],
+            "rating": 0,
+            "reviews": 0
+        }
+    ]
+}

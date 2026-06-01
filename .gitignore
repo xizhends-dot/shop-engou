@@ -1,0 +1,11 @@
+# Claude Code 项目记忆（仅本地，不提交远程）
+.claude/
+CLAUDE.local.md
+
+# 环境/密钥（若将来使用）
+.env
+.env.*
+
+# 系统文件
+.DS_Store
+Thumbs.db

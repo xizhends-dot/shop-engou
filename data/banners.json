@@ -1,0 +1,4 @@
+[
+    { "image": "images/banners/banner-a.jpg", "link": "list.php", "title": "新生活応援フェア開催中", "subtitle": "人気の家電を、お得な価格でお届けします。" },
+    { "image": "images/banners/banner-b.jpg", "link": "list.php?cat=beauty", "title": "<span class='accent'>美容家電</span>特集", "subtitle": "おうちで本格ビューティーケア。" }
+]
