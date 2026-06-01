@@ -93,7 +93,10 @@ function admin_head($title, $showNav = true) {
       <?= admin_lang_switcher_html() ?>
       <div class="adm-nav-util">
         <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', __('nav.view_site'), '', ' target="_blank" rel="noopener"') ?>
-        <?= adm_nav_top_link('logout.php', 'fa-right-from-bracket', __('nav.logout'), 'adm-logout') ?>
+        <form method="post" action="logout.php" class="adm-logout-form">
+          <input type="hidden" name="csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
+          <button type="submit" class="adm-nav-top adm-logout"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span><?= htmlspecialchars(__('nav.logout')) ?></span></button>
+        </form>
       </div>
     </nav>
   </div>

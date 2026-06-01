@@ -15,7 +15,7 @@ $idx = store_find_index($data['products'], $id);
 if ($idx >= 0) {
     // 商品に紐づく画像を物理削除
     foreach (($data['products'][$idx]['images'] ?? []) as $img) {
-        store_delete_image($img);
+        store_delete_product_image($img);
     }
     array_splice($data['products'], $idx, 1);
     // おすすめ設定からも除外

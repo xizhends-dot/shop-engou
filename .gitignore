@@ -5,6 +5,7 @@ CLAUDE.local.md
 # 环境/密钥（若将来使用）
 .env
 .env.*
+config.php
 
 # 系统文件
 .DS_Store

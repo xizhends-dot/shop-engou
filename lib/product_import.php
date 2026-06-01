@@ -193,6 +193,7 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         if (empty($images)) {
             $images = ($idx >= 0) ? ($data['products'][$idx]['images'] ?? []) : [];
         }
+        $images = store_filter_product_image_paths($images);
 
         $ratingRaw  = $get($row, 'rating');
         $reviewsRaw = $get($row, 'reviews');
@@ -202,8 +203,8 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         $record = [
             'id'       => $id,
             'category' => $catKey,
-            'icon'     => $get($row, 'icon') ?: 'fa-box',
-            'accent'   => $get($row, 'accent') ?: '#DEF13F',
+            'icon'     => shop_sanitize_icon($get($row, 'icon') ?: 'fa-box'),
+            'accent'   => shop_sanitize_accent($get($row, 'accent') ?: '#DEF13F'),
             'images'   => $images,
             'name'     => $name,
             'tag'      => $get($row, 'tag'),
@@ -241,18 +242,18 @@ function import_build_export_rows(array $products) {
     foreach ($products as $p) {
         $imgs = array_slice($p['images'] ?? [], 0, IMPORT_IMG_MAX);
         $rows[] = array_merge([
-            $p['id'],
-            $p['category'],
-            $p['name'],
-            $p['tag'] ?? '',
-            $p['price'],
-            $p['badge'] ?? '',
-            $p['icon'] ?? 'fa-box',
-            $p['accent'] ?? '#DEF13F',
-            $p['desc'] ?? '',
-            $p['rating'] ?? 0,
-            $p['reviews'] ?? 0,
-        ], array_pad($imgs, IMPORT_IMG_MAX, ''));
+            import_escape_cell($p['id']),
+            import_escape_cell($p['category']),
+            import_escape_cell($p['name']),
+            import_escape_cell($p['tag'] ?? ''),
+            import_escape_cell($p['price']),
+            import_escape_cell($p['badge'] ?? ''),
+            import_escape_cell($p['icon'] ?? 'fa-box'),
+            import_escape_cell($p['accent'] ?? '#DEF13F'),
+            import_escape_cell($p['desc'] ?? ''),
+            import_escape_cell($p['rating'] ?? 0),
+            import_escape_cell($p['reviews'] ?? 0),
+        ], array_map('import_escape_cell', array_pad($imgs, IMPORT_IMG_MAX, '')));
     }
     return $rows;
 }

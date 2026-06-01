@@ -98,6 +98,7 @@ return [
     'login.submit' => 'ログイン',
     'login.error_session' => 'セッションの有効期限が切れました。もう一度お試しください。',
     'login.error_password' => 'パスワードが正しくありません。',
+    'login.error_locked' => 'ログイン試行が多すぎます。約15分後に再度お試しください。',
 
     'dash.overview' => '概要',
     'dash.stats_products' => '登録商品',

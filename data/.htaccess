@@ -1,0 +1,7 @@
+# 商品・バナー等の JSON データを Web から直接読めないようにする
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>

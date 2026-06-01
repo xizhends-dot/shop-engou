@@ -8,11 +8,14 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? '')) {
         $error = __('login.error_session');
+    } elseif (!admin_login_throttle_ok()) {
+        $error = __('login.error_locked');
     } elseif (admin_verify_password($_POST['password'] ?? '', $config)) {
         admin_login();
         header('Location: index.php');
         exit;
     } else {
+        admin_login_record_failure();
         $error = __('login.error_password');
     }
 }

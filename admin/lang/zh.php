@@ -98,6 +98,7 @@ return [
     'login.submit' => '登录',
     'login.error_session' => '会话已过期，请重试。',
     'login.error_password' => '密码不正确。',
+    'login.error_locked' => '登录尝试过于频繁，请约 15 分钟后再试。',
 
     'dash.overview' => '概览',
     'dash.stats_products' => '已登记商品',

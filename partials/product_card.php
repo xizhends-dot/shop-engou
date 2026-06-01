@@ -7,11 +7,11 @@ $thumb = !empty($p['images']) ? $p['images'][0] : '';
 $cat   = $cats[$p['category']] ?? null;
 ?>
 <article class="product-card" data-category="<?= htmlspecialchars($p['category']) ?>">
-  <a href="product.php?id=<?= urlencode($p['id']) ?>" class="product-thumb <?= $thumb === '' ? 'placeholder' : '' ?>" <?= $thumb === '' ? 'style="background: linear-gradient(140deg, ' . htmlspecialchars($p['accent']) . ', ' . htmlspecialchars($p['accent']) . '99);"' : '' ?>>
+  <a href="product.php?id=<?= urlencode($p['id']) ?>" class="product-thumb <?= $thumb === '' ? 'placeholder' : '' ?>" <?= $thumb === '' ? 'style="' . shop_gradient_style($p['accent'] ?? '') . '"' : '' ?>>
   <?php if ($thumb !== ''): ?>
-    <img src="<?= htmlspecialchars($thumb) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
+    <img src="<?= shop_e($thumb) ?>" alt="<?= shop_e($p['name']) ?>">
   <?php else: ?>
-    <i class="fa-solid <?= htmlspecialchars($p['icon']) ?> ph-icon"></i>
+    <i class="fa-solid <?= shop_e(shop_sanitize_icon($p['icon'] ?? 'fa-box')) ?> ph-icon"></i>
   <?php endif; ?>
     <?php if (!empty($p['badge'])): ?>
     <span class="badge"><?= htmlspecialchars($p['badge']) ?></span>

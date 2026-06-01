@@ -1,0 +1,5 @@
+# data/ 以下への直接アクセスを拒否（Apache）
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^data/ - [F,L]
+</IfModule>

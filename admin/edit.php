@@ -34,8 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'tag'      => store_utf8_normalize(trim($_POST['tag'] ?? '')),
         'price'    => trim($_POST['price'] ?? ''),
         'badge'    => store_utf8_normalize(trim($_POST['badge'] ?? '')),
-        'icon'     => store_utf8_normalize(trim($_POST['icon'] ?? '') ?: 'fa-box'),
-        'accent'   => trim($_POST['accent'] ?? '') ?: '#DEF13F',
+        'icon'     => shop_sanitize_icon(store_utf8_normalize(trim($_POST['icon'] ?? '') ?: 'fa-box')),
+        'accent'   => shop_sanitize_accent(trim($_POST['accent'] ?? '') ?: '#DEF13F'),
         'desc'     => store_utf8_normalize(trim($_POST['desc'] ?? '')),
         'rating'   => trim($_POST['rating'] ?? ''),
         'reviews'  => trim($_POST['reviews'] ?? ''),
@@ -58,22 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         // 画像: フロントで並べ替え・削除済みの順序つきリスト（images[]）
-        $kept = [];
-        foreach (($_POST['images'] ?? []) as $im) {
-            $im = (string)$im;
-            if (in_array($im, $kept, true)) { continue; }
-            if (strpos($im, UPLOAD_REL . '/') === 0 && strpos($im, '..') === false && is_file(SHOP_BASE . '/' . $im)) {
-                $kept[] = $im;
-            }
-        }
-        // 画像ライブラリから選択された画像を末尾に追加
-        foreach (($_POST['lib_images'] ?? []) as $li) {
-            $li = (string)$li;
-            if (in_array($li, $kept, true)) { continue; }
-            if (strpos($li, UPLOAD_REL . '/') === 0 && strpos($li, '..') === false && is_file(SHOP_BASE . '/' . $li)) {
-                $kept[] = $li;
-            }
-        }
+        $kept = store_filter_product_image_paths(array_merge(
+            array_map('strval', $_POST['images'] ?? []),
+            array_map('strval', $_POST['lib_images'] ?? [])
+        ));
         // 新規アップロード（複数・末尾に追加）
         if (!empty($_FILES['new_images']['name'][0])) {
             $n = count($_FILES['new_images']['name']);
@@ -168,7 +156,7 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
       <small><?= htmlspecialchars($isEdit ? __('edit.hint_id_ro') : __('edit.hint_id_new')) ?></small>
     </div>
     <div class="adm-field">
-      <label>カテゴリ <span class="req">*</span></label>
+      <label><?= htmlspecialchars(__('edit.label_cat')) ?> <span class="req">*</span></label>
       <select name="category">
         <?php foreach ($cats as $slug => $c): ?>
         <option value="<?= htmlspecialchars($slug) ?>" <?= $current['category'] === $slug ? 'selected' : '' ?>><?= htmlspecialchars($c['name']) ?></option>
@@ -178,22 +166,22 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
   </div>
 
   <div class="adm-field">
-    <label>商品名 <span class="req">*</span></label>
+    <label><?= htmlspecialchars(__('edit.label_name')) ?> <span class="req">*</span></label>
     <input type="text" name="name" value="<?= htmlspecialchars($current['name']) ?>" required>
   </div>
 
   <div class="adm-field">
-    <label>キャッチコピー（一覧カードの短い説明）</label>
+    <label><?= htmlspecialchars(__('edit.label_tag')) ?></label>
     <input type="text" name="tag" value="<?= htmlspecialchars($current['tag']) ?>" placeholder="例: 節水・高洗浄力・美肌美髪">
   </div>
 
   <div class="adm-grid">
     <div class="adm-field">
-      <label>価格（税込・数値）<span class="req">*</span></label>
+      <label><?= htmlspecialchars(__('edit.label_price')) ?><span class="req">*</span></label>
       <input type="number" name="price" value="<?= htmlspecialchars((string)$current['price']) ?>" min="0" step="1" required>
     </div>
     <div class="adm-field">
-      <label>バッジ（任意）</label>
+      <label><?= htmlspecialchars(__('edit.label_badge')) ?></label>
       <input type="text" name="badge" value="<?= htmlspecialchars($current['badge']) ?>" placeholder="例: 人気No.1 / NEW">
     </div>
   </div>

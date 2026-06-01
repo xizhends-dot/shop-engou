@@ -25,9 +25,9 @@ require __DIR__ . '/partials/header.php';
 function banner_caption($bt, $title, $subtitle, $btn1link) {
     ob_start(); ?>
     <div class="banner-inner">
-      <?php if (!empty($bt['eyebrow'])): ?><div class="eyebrow"><?= $bt['eyebrow'] ?></div><?php endif; ?>
-      <?php if ($title !== ''): ?><h1><?= $title ?></h1><?php endif; ?>
-      <?php if ($subtitle !== ''): ?><p><?= $subtitle ?></p><?php endif; ?>
+      <?php if (!empty($bt['eyebrow'])): ?><div class="eyebrow"><?= shop_safe_html($bt['eyebrow']) ?></div><?php endif; ?>
+      <?php if ($title !== ''): ?><h1><?= shop_safe_html($title) ?></h1><?php endif; ?>
+      <?php if ($subtitle !== ''): ?><p><?= shop_safe_html($subtitle) ?></p><?php endif; ?>
       <?php if (!empty($bt['btn1_text']) || !empty($bt['btn2_text'])): ?>
       <div class="banner-actions">
         <?php if (!empty($bt['btn1_text'])): ?><a href="<?= htmlspecialchars($btn1link) ?>" class="btn-primary"><i class="fa-solid fa-bag-shopping"></i><span><?= htmlspecialchars($bt['btn1_text']) ?></span></a><?php endif; ?>

@@ -74,8 +74,22 @@ img { display: block; max-width: 100%; }
 
 .adm-nav-util { display: flex; align-items: center; gap: 4px; margin-left: 8px; padding-left: 12px; border-left: 1px solid rgba(255,255,255,0.15); }
 .adm-nav-util .adm-nav-top { font-size: 12px; padding: 8px 10px; }
-.adm-nav-util .adm-logout { color: #ffb4b4; }
-.adm-nav-util .adm-logout:hover { background: rgba(229,72,77,0.22); color: #ffc9c9; }
+.adm-nav-util .adm-logout,
+.adm-nav-util .adm-logout-form button.adm-logout { color: #ffb4b4; }
+.adm-nav-util .adm-logout:hover,
+.adm-nav-util .adm-logout-form button.adm-logout:hover { background: rgba(229,72,77,0.22); color: #ffc9c9; }
+.adm-logout-form { display: inline; margin: 0; padding: 0; }
+.adm-logout-form button.adm-logout {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
 
 .adm-lang-switch { display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid rgba(255,255,255,0.14); margin-left: 4px; }
 .adm-lang-btn { font-size: 11px; font-weight: 700; padding: 6px 9px; border-radius: 6px; color: rgba(255,255,255,0.65); transition: background .15s, color .15s; }

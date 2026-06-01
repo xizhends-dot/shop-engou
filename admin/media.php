@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $path = (string)($_POST['path'] ?? '');
         if (media_validate_product_image_path($path, $postDir)) {
             $removed = store_unlink_image_refs($data, $path);
-            store_delete_image($path);
+            store_delete_product_image($path);
             if ($removed > 0) { store_save($data); }
             set_flash(__('flash.image_deleted', ['extra' => $removed ? __('flash.image_deleted_refs', ['n' => $removed]) : '']));
         } else {
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
             $refs += store_unlink_image_refs($data, $path);
-            store_delete_image($path);
+            store_delete_product_image($path);
             $del++;
         }
         if ($refs > 0) { store_save($data); }

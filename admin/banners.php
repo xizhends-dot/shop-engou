@@ -55,6 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $order  = $_POST['order'] ?? array_keys($byImg);
         $new = [];
         foreach ($order as $img) {
+            if (!store_validate_banner_image_path($img)) {
+                continue;
+            }
             if (isset($byImg[$img])) {
                 $new[] = [
                     'image'    => $img,
@@ -74,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($act === 'replace') {
         $path = (string)($_POST['path'] ?? '');
-        if (!banner_admin_valid_path($path)) {
+        if (!store_validate_banner_image_path($path)) {
             set_flash(__('flash.banner_bad_path'), 'err');
             header('Location: banners.php'); exit;
         }
@@ -109,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         banners_save($banners);
         if ($rel !== $path) {
-            store_delete_image($path);
+            store_delete_banner_image($path);
         }
         set_flash(__('flash.banner_replaced'));
         header('Location: banners.php'); exit;
@@ -117,27 +120,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($act === 'delete') {
         $path = (string)($_POST['path'] ?? '');
+        if (!store_validate_banner_image_path($path)) {
+            set_flash(__('flash.banner_bad_path'), 'err');
+            header('Location: banners.php'); exit;
+        }
         $banners = array_values(array_filter(banners_load(), function ($b) use ($path) { return $b['image'] !== $path; }));
         banners_save($banners);
-        store_delete_image($path);
+        store_delete_banner_image($path);
         set_flash(__('flash.banner_deleted'));
         header('Location: banners.php'); exit;
     }
-}
-
-/** バナー画像パスが images/banners 配下か検証 */
-function banner_admin_valid_path($rel) {
-    if ($rel === '' || strpos($rel, '..') !== false) {
-        return false;
-    }
-    $rel = str_replace('\\', '/', $rel);
-    if (strpos($rel, BANNER_REL . '/') !== 0) {
-        return false;
-    }
-    $abs = SHOP_BASE . '/' . $rel;
-    $base = realpath(BANNER_DIR);
-    $file = realpath($abs);
-    return $base && $file && is_file($file) && strpos($file, $base) === 0;
 }
 
 $banners  = banners_load();

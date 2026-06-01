@@ -5,6 +5,7 @@
  *   $active … 'shop' | 'company' | 'contact' など、現在ページのハイライト用
  */
 if (!isset($config)) { $config = require __DIR__ . '/../config.php'; }
+if (!function_exists('shop_e')) { require_once __DIR__ . '/../lib/store.php'; }
 $active = $active ?? '';
 $page_title = $page_title ?? ($config['company_name_ja'] . ' SHOP');
 ?>
@@ -14,7 +15,7 @@ $page_title = $page_title ?? ($config['company_name_ja'] . ' SHOP');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($page_title) ?></title>
-<meta name="description" content="<?= $config['company_name_ja'] ?>（<?= $config['company_name_en'] ?>）公式オンラインショップ。美容家電・生活家電・キッチン家電を厳選してお届けします。">
+<meta name="description" content="<?= shop_e($config['company_name_ja']) ?>（<?= shop_e($config['company_name_en']) ?>）公式オンラインショップ。美容家電・生活家電・キッチン家電を厳選してお届けします。">
 <meta property="og:title" content="<?= htmlspecialchars($page_title) ?>">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#14142e">

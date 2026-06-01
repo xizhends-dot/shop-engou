@@ -237,11 +237,14 @@ function store_utf8_normalize($s) {
 function store_normalize_data_for_db(array $data) {
     foreach ($data['categories'] as $slug => &$c) {
         $c['name'] = store_utf8_normalize($c['name'] ?? (string)$slug);
-        $c['icon'] = store_utf8_normalize($c['icon'] ?? 'fa-tag');
+        $c['icon'] = shop_sanitize_icon(store_utf8_normalize($c['icon'] ?? 'fa-tag'));
     }
     unset($c);
     foreach ($data['products'] as &$p) {
-        foreach (['id', 'category', 'icon', 'accent', 'name', 'tag', 'badge', 'desc'] as $k) {
+        $p['icon']   = shop_sanitize_icon($p['icon'] ?? 'fa-box');
+        $p['accent'] = shop_sanitize_accent($p['accent'] ?? '#DEF13F');
+        $p['images'] = store_filter_product_image_paths($p['images'] ?? []);
+        foreach (['id', 'category', 'name', 'tag', 'badge', 'desc'] as $k) {
             if (isset($p[$k]) && is_string($p[$k])) {
                 $p[$k] = store_utf8_normalize($p[$k]);
             }
@@ -320,37 +323,66 @@ function store_load_mysql() {
     return ['categories' => $cats, 'products' => $products];
 }
 
-/** 全データをトランザクションで置き換え（呼び出し側は配列全体を渡す） */
+/** 全データをトランザクションで同期（DELETE ALL せず UPSERT + 孤立行削除） */
 function store_save_mysql($data) {
     try {
         $data = store_normalize_data_for_db($data);
         $pdo = db_connect();
         $pdo->beginTransaction();
-        $pdo->exec('DELETE FROM product_images');
-        $pdo->exec('DELETE FROM products');
-        $pdo->exec('DELETE FROM categories');
 
-        $cs = $pdo->prepare('INSERT INTO categories (slug, name, icon, sort) VALUES (?, ?, ?, ?)');
+        $cs = $pdo->prepare(
+            'INSERT INTO categories (slug, name, icon, sort) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE name=VALUES(name), icon=VALUES(icon), sort=VALUES(sort)'
+        );
         $ci = 0;
         foreach ($data['categories'] as $slug => $c) {
-            $cs->execute([$slug, $c['name'] ?? $slug, $c['icon'] ?? 'fa-tag', $ci++]);
+            $cs->execute([$slug, $c['name'] ?? $slug, shop_sanitize_icon($c['icon'] ?? 'fa-tag'), $ci++]);
         }
 
-        $ps = $pdo->prepare('INSERT INTO products (id, category, icon, accent, name, tag, price, badge, description, attributes, rating, reviews, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $is = $pdo->prepare('INSERT INTO product_images (product_id, path, sort) VALUES (?, ?, ?)');
+        $ps = $pdo->prepare(
+            'INSERT INTO products (id, category, icon, accent, name, tag, price, badge, description, attributes, rating, reviews, sort)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE category=VALUES(category), icon=VALUES(icon), accent=VALUES(accent),
+             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), badge=VALUES(badge),
+             description=VALUES(description), attributes=VALUES(attributes),
+             rating=VALUES(rating), reviews=VALUES(reviews), sort=VALUES(sort)'
+        );
+        $delImg = $pdo->prepare('DELETE FROM product_images WHERE product_id = ?');
+        $insImg = $pdo->prepare('INSERT INTO product_images (product_id, path, sort) VALUES (?, ?, ?)');
+        $productIds = [];
         $pi = 0;
         foreach ($data['products'] as $p) {
+            $productIds[] = $p['id'];
             $attrsJson = json_encode($p['attributes'] ?? [], JSON_UNESCAPED_UNICODE);
             $ps->execute([
-                $p['id'], $p['category'], $p['icon'] ?? 'fa-box', $p['accent'] ?? '#DEF13F',
+                $p['id'], $p['category'], shop_sanitize_icon($p['icon'] ?? 'fa-box'), shop_sanitize_accent($p['accent'] ?? '#DEF13F'),
                 $p['name'], $p['tag'] ?? '', (int)$p['price'], $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
                 (float)($p['rating'] ?? 0), (int)($p['reviews'] ?? 0), $pi++,
             ]);
+            $delImg->execute([$p['id']]);
             $ii = 0;
-            foreach (($p['images'] ?? []) as $img) {
-                $is->execute([$p['id'], $img, $ii++]);
+            foreach (store_filter_product_image_paths($p['images'] ?? []) as $img) {
+                $insImg->execute([$p['id'], $img, $ii++]);
             }
         }
+
+        if ($productIds) {
+            $ph = implode(',', array_fill(0, count($productIds), '?'));
+            $pdo->prepare("DELETE FROM product_images WHERE product_id NOT IN ($ph)")->execute($productIds);
+            $pdo->prepare("DELETE FROM products WHERE id NOT IN ($ph)")->execute($productIds);
+        } else {
+            $pdo->exec('DELETE FROM product_images');
+            $pdo->exec('DELETE FROM products');
+        }
+
+        $catSlugs = array_keys($data['categories']);
+        if ($catSlugs) {
+            $ph = implode(',', array_fill(0, count($catSlugs), '?'));
+            $pdo->prepare("DELETE FROM categories WHERE slug NOT IN ($ph)")->execute($catSlugs);
+        } else {
+            $pdo->exec('DELETE FROM categories');
+        }
+
         $pdo->commit();
         return true;
     } catch (Throwable $e) {
@@ -397,8 +429,7 @@ function store_health_report() {
         $items[] = [
             'label'  => 'MySQL 設定',
             'ok'     => !empty($db['name']) && !empty($db['user']),
-            'detail' => sprintf('host=%s port=%s db=%s user=%s',
-                $db['host'] ?? '127.0.0.1', $db['port'] ?? 3306, $db['name'] ?? '(未設定)', $db['user'] ?? '(未設定)'),
+            'detail' => !empty($db['name']) ? ('database=' . $db['name']) : '(未設定)',
         ];
         try {
             $pdo = db_connect();
@@ -478,13 +509,155 @@ function store_valid_id($id) {
 }
 
 /* ================================================================
+   出力サニタイズ / パス検証
+   ================================================================ */
+function shop_e($s) {
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/** バナー等：許可タグのみ（br / span.accent / strong / em） */
+function shop_safe_html($html) {
+    $html = (string)$html;
+    if ($html === '') {
+        return '';
+    }
+    $html = strip_tags($html, '<br><span><strong><em><b><i>');
+    return preg_replace_callback(
+        '/<\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*)>/',
+        function ($m) {
+            $close = $m[1] === '/';
+            $tag = strtolower($m[2]);
+            if ($tag === 'br' && !$close) {
+                return '<br>';
+            }
+            if ($close) {
+                return in_array($tag, ['span', 'strong', 'em', 'b', 'i'], true) ? '</' . $tag . '>' : '';
+            }
+            if ($tag === 'span' && preg_match('/class\s*=\s*["\']accent["\']/i', $m[3] ?? '')) {
+                return '<span class="accent">';
+            }
+            return in_array($tag, ['strong', 'em', 'b', 'i'], true) ? '<' . $tag . '>' : '';
+        },
+        $html
+    );
+}
+
+function shop_sanitize_icon($icon) {
+    $icon = trim((string)$icon);
+    return preg_match('/^fa-[a-z0-9-]+$/i', $icon) ? strtolower($icon) : 'fa-box';
+}
+
+function shop_sanitize_accent($accent) {
+    $accent = trim((string)$accent);
+    return preg_match('/^#[0-9A-Fa-f]{3,8}$/', $accent) ? $accent : '#DEF13F';
+}
+
+function shop_gradient_style($accent) {
+    $a = shop_sanitize_accent($accent);
+    return 'background: linear-gradient(140deg, ' . $a . ', ' . $a . '99);';
+}
+
+/** 商品画像の相対パスが images/products 配下の実ファイルか */
+function store_validate_product_image_path($rel) {
+    $rel = str_replace('\\', '/', trim((string)$rel));
+    if ($rel === '' || strpos($rel, '..') !== false || strpos($rel, UPLOAD_REL . '/') !== 0) {
+        return false;
+    }
+    $abs = SHOP_BASE . '/' . $rel;
+    $base = realpath(UPLOAD_DIR);
+    $file = realpath($abs);
+    return $base && $file && is_file($file) && strpos($file, $base) === 0;
+}
+
+/** バナー画像の相対パスが images/banners 配下か */
+function store_validate_banner_image_path($rel) {
+    if ($rel === '' || strpos($rel, '..') !== false) {
+        return false;
+    }
+    $rel = str_replace('\\', '/', $rel);
+    if (strpos($rel, BANNER_REL . '/') !== 0) {
+        return false;
+    }
+    $abs = SHOP_BASE . '/' . $rel;
+    $base = realpath(BANNER_DIR);
+    $file = realpath($abs);
+    return $base && $file && is_file($file) && strpos($file, $base) === 0;
+}
+
+/** @param array<int, string> $paths */
+function store_filter_product_image_paths(array $paths) {
+    $out = [];
+    foreach ($paths as $p) {
+        $p = (string)$p;
+        if (store_validate_product_image_path($p) && !in_array($p, $out, true)) {
+            $out[] = $p;
+        }
+    }
+    return $out;
+}
+
+function store_delete_product_image($relPath) {
+    if (!store_validate_product_image_path($relPath)) {
+        return false;
+    }
+    $abs = SHOP_BASE . '/' . $relPath;
+    return is_file($abs) ? @unlink($abs) : false;
+}
+
+function store_delete_banner_image($relPath) {
+    if (!store_validate_banner_image_path($relPath)) {
+        return false;
+    }
+    $abs = SHOP_BASE . '/' . $relPath;
+    return is_file($abs) ? @unlink($abs) : false;
+}
+
+/** CSV/Excel 式インジェクション対策 */
+function import_escape_cell($v) {
+    $s = (string)$v;
+    if ($s !== '' && preg_match('/^[=+\-@\t\r]/', $s)) {
+        return "'" . $s;
+    }
+    return $s;
+}
+
+/* ================================================================
    認証 / セッション
    ================================================================ */
 function admin_session_start() {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_name('engou_shop_admin');
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path'     => '/',
+            'secure'   => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
         session_start();
     }
+}
+
+function admin_login_throttle_ok() {
+    admin_session_start();
+    $until = (int)($_SESSION['login_lock_until'] ?? 0);
+    return time() >= $until;
+}
+
+function admin_login_record_failure() {
+    admin_session_start();
+    $n = (int)($_SESSION['login_fails'] ?? 0) + 1;
+    $_SESSION['login_fails'] = $n;
+    if ($n >= 8) {
+        $_SESSION['login_lock_until'] = time() + 900;
+    }
+}
+
+function admin_login_clear_failures() {
+    admin_session_start();
+    unset($_SESSION['login_fails'], $_SESSION['login_lock_until']);
 }
 
 /** 入力パスワードを config の値（平文 or bcryptハッシュ）と照合 */
@@ -513,6 +686,7 @@ function admin_login() {
     admin_session_start();
     session_regenerate_id(true);
     $_SESSION['engou_admin_ok'] = true;
+    admin_login_clear_failures();
 }
 
 function admin_logout() {
@@ -959,11 +1133,11 @@ function store_unlink_image_refs(&$data, $relPath) {
     return $cnt;
 }
 
-/** 相対パスの画像ファイルを物理削除（images/ 配下のみ・安全確認付き） */
+/** @deprecated store_delete_product_image / store_delete_banner_image を使用 */
 function store_delete_image($relPath) {
-    $relPath = (string)$relPath;
-    if (strpos($relPath, 'images/') !== 0) { return; }             // images/ 配下のみ許可
-    if (strpos($relPath, '..') !== false) { return; }
-    $abs = SHOP_BASE . '/' . $relPath;
-    if (is_file($abs)) { @unlink($abs); }
+    if (store_validate_product_image_path($relPath)) {
+        store_delete_product_image($relPath);
+        return;
+    }
+    store_delete_banner_image($relPath);
 }

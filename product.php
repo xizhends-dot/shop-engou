@@ -18,6 +18,9 @@ if ($product === null) {
 }
 
 $cat = $cats[$product['category']] ?? null;
+$pIcon = shop_sanitize_icon($product['icon'] ?? 'fa-box');
+$pAccent = shop_sanitize_accent($product['accent'] ?? '#DEF13F');
+$imgs = store_filter_product_image_paths($product['images'] ?? []);
 
 // 関連商品（同カテゴリ・最大3件、自身を除く）
 $related = [];
@@ -39,25 +42,24 @@ require __DIR__ . '/partials/header.php';
     <a href="list.php">商品一覧</a>
     <span class="sep">/</span>
     <?php if ($cat): ?>
-    <a href="list.php"><?= $cat['name'] ?></a>
+    <a href="list.php"><?= shop_e($cat['name']) ?></a>
     <span class="sep">/</span>
     <?php endif; ?>
-    <span><?= $product['name'] ?></span>
+    <span><?= shop_e($product['name']) ?></span>
   </nav>
 
   <!-- DETAIL -->
   <section class="detail-layout">
-    <?php $imgs = !empty($product['images']) ? $product['images'] : []; ?>
     <div class="detail-gallery">
       <div class="main-img-wrap">
         <?php if (count($imgs) > 1): ?>
         <button type="button" class="gallery-nav gallery-prev" id="galleryPrev" aria-label="前の画像"><i class="fa-solid fa-chevron-left"></i></button>
         <?php endif; ?>
-        <div class="main-img" id="mainImg" <?= empty($imgs) ? 'style="background: linear-gradient(140deg, ' . $product['accent'] . ', ' . $product['accent'] . '99);"' : '' ?>>
+        <div class="main-img" id="mainImg" <?= empty($imgs) ? 'style="' . shop_gradient_style($pAccent) . '"' : '' ?>>
           <?php if (!empty($imgs)): ?>
-            <img src="<?= htmlspecialchars($imgs[0]) ?>" alt="<?= htmlspecialchars($product['name']) ?>" id="mainImgEl">
+            <img src="<?= shop_e($imgs[0]) ?>" alt="<?= shop_e($product['name']) ?>" id="mainImgEl">
           <?php else: ?>
-            <i class="fa-solid <?= $product['icon'] ?> ph-icon"></i>
+            <i class="fa-solid <?= shop_e($pIcon) ?> ph-icon"></i>
           <?php endif; ?>
         </div>
         <?php if (count($imgs) > 1): ?>
@@ -67,8 +69,8 @@ require __DIR__ . '/partials/header.php';
       <?php if (count($imgs) > 1): ?>
       <div class="thumbs" id="thumbs">
         <?php foreach ($imgs as $k => $im): ?>
-        <button type="button" class="thumb <?= $k === 0 ? 'active' : '' ?>" data-index="<?= $k ?>" data-src="<?= htmlspecialchars($im) ?>">
-          <img src="<?= htmlspecialchars($im) ?>" alt="<?= htmlspecialchars($product['name']) ?> <?= $k + 1 ?>">
+        <button type="button" class="thumb <?= $k === 0 ? 'active' : '' ?>" data-index="<?= $k ?>" data-src="<?= shop_e($im) ?>">
+          <img src="<?= shop_e($im) ?>" alt="<?= shop_e($product['name']) ?> <?= $k + 1 ?>">
         </button>
         <?php endforeach; ?>
       </div>
@@ -76,10 +78,10 @@ require __DIR__ . '/partials/header.php';
     </div>
     <div class="detail-info">
       <?php if ($cat): ?>
-      <span class="d-cat"><i class="fa-solid <?= $cat['icon'] ?>"></i> <span><?= $cat['name'] ?></span></span>
+      <span class="d-cat"><i class="fa-solid <?= shop_e(shop_sanitize_icon($cat['icon'] ?? 'fa-tag')) ?>"></i> <span><?= shop_e($cat['name']) ?></span></span>
       <?php endif; ?>
-      <h1><?= $product['name'] ?></h1>
-      <p class="d-sku">商品番号：<?= htmlspecialchars($product['id']) ?></p>
+      <h1><?= shop_e($product['name']) ?></h1>
+      <p class="d-sku">商品番号：<?= shop_e($product['id']) ?></p>
       <?php if (!empty($product['rating']) || !empty($product['reviews'])): ?>
       <div class="d-rating">
         <span class="stars"><?= render_stars($product['rating']) ?></span>
@@ -92,11 +94,11 @@ require __DIR__ . '/partials/header.php';
       <?php if (!empty($product['attributes'])): ?>
       <div class="d-attrs" id="dAttrs">
         <?php foreach ($product['attributes'] as $a): if (empty($a['name'])) continue; ?>
-        <div class="d-attr" data-attr-group="<?= htmlspecialchars($a['name']) ?>">
-          <span class="d-attr-name"><?= htmlspecialchars($a['name']) ?></span>
+        <div class="d-attr" data-attr-group="<?= shop_e($a['name']) ?>">
+          <span class="d-attr-name"><?= shop_e($a['name']) ?></span>
           <span class="d-attr-opts">
             <?php if (!empty($a['options'])): foreach ($a['options'] as $oi => $opt): ?>
-              <button type="button" class="d-attr-chip <?= $oi === 0 ? 'selected' : '' ?>" data-val="<?= htmlspecialchars($opt) ?>"><?= htmlspecialchars($opt) ?></button>
+              <button type="button" class="d-attr-chip <?= $oi === 0 ? 'selected' : '' ?>" data-val="<?= shop_e($opt) ?>"><?= shop_e($opt) ?></button>
             <?php endforeach; else: ?>
               <span class="d-attr-empty">—</span>
             <?php endif; ?>
@@ -107,7 +109,7 @@ require __DIR__ . '/partials/header.php';
       <?php endif; ?>
 
       <div class="detail-actions">
-        <a id="inquiryBtn" href="mailto:<?= $config['email'] ?>?subject=<?= rawurlencode('【商品お問い合わせ】' . $product['name'] . '（商品番号: ' . $product['id'] . '）') ?>" class="btn-primary">
+        <a id="inquiryBtn" href="mailto:<?= shop_e($config['email']) ?>?subject=<?= rawurlencode('【商品お問い合わせ】' . $product['name'] . '（商品番号: ' . $product['id'] . '）') ?>" class="btn-primary">
           <i class="fa-solid fa-envelope"></i><span>問い合わせ</span>
         </a>
         <a href="list.php" class="btn-ghost">
@@ -120,7 +122,7 @@ require __DIR__ . '/partials/header.php';
   <!-- 商品詳細 -->
   <section class="product-detail-body">
     <h3 class="block-title">商品詳細</h3>
-    <p><?= nl2br($product['desc']) ?></p>
+    <p><?= nl2br(shop_e($product['desc'] ?? ''), false) ?></p>
   </section>
 
   <?php if (!empty($related)): ?>
@@ -128,25 +130,7 @@ require __DIR__ . '/partials/header.php';
   <section class="related">
     <h3 class="block-title">関連商品</h3>
     <div class="product-grid">
-      <?php foreach ($related as $p): $rthumb = !empty($p['images']) ? $p['images'][0] : ''; ?>
-      <article class="product-card" data-category="<?= $p['category'] ?>">
-        <a href="product.php?id=<?= urlencode($p['id']) ?>" class="product-thumb <?= $rthumb === '' ? 'placeholder' : '' ?>" <?= $rthumb === '' ? 'style="background: linear-gradient(140deg, ' . $p['accent'] . ', ' . $p['accent'] . '99);"' : '' ?>>
-        <?php if ($rthumb !== ''): ?>
-          <img src="<?= htmlspecialchars($rthumb) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
-        <?php else: ?>
-          <i class="fa-solid <?= $p['icon'] ?> ph-icon"></i>
-        <?php endif; ?>
-        </a>
-        <div class="product-body">
-          <h3><?= $p['name'] ?></h3>
-          <p class="p-tag"><?= $p['tag'] ?></p>
-          <div class="product-foot">
-            <span class="price"><?= yen($p['price']) ?></span>
-            <a href="product.php?id=<?= urlencode($p['id']) ?>" class="btn-detail">詳細を見る</a>
-          </div>
-        </div>
-      </article>
-      <?php endforeach; ?>
+      <?php foreach ($related as $p) { include __DIR__ . '/partials/product_card.php'; } ?>
     </div>
   </section>
   <?php endif; ?>
