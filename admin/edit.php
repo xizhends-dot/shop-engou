@@ -24,7 +24,7 @@ $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? '')) {
-        $errors[] = 'セッションの有効期限が切れました。もう一度お試しください。';
+        $errors[] = __('login.error_session');
     }
     // 入力取得
     $in = [
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['products'][] = $record;
             }
             if (store_save($data)) {
-                set_flash($isEdit ? '商品を更新しました。' : '商品を追加しました。');
+                set_flash($isEdit ? __('flash.product_updated') : __('flash.product_added'));
                 header('Location: products.php');
                 exit;
             } else {
@@ -144,11 +144,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $token = csrf_token();
-admin_head($isEdit ? '商品を編集' : '商品を追加');
+admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
 ?>
 <div class="adm-head">
-  <h2><?= $isEdit ? '商品を編集' : '商品を追加' ?></h2>
-  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
+  <h2><?= htmlspecialchars($isEdit ? __('page.product_edit') : __('page.product_add')) ?></h2>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_products')) ?></a>
 </div>
 
 <?php if (!empty($errors)): ?>
@@ -297,8 +297,8 @@ admin_head($isEdit ? '商品を編集' : '商品を追加');
   </div>
 
   <div class="adm-formfoot">
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
-    <a href="products.php" class="adm-btn">キャンセル</a>
+    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> <?= htmlspecialchars(__('btn.save')) ?></button>
+    <a href="products.php" class="adm-btn"><?= htmlspecialchars(__('btn.cancel')) ?></a>
   </div>
 </form>
 

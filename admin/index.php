@@ -44,87 +44,89 @@ global $config;
 $storage = store_driver();
 
 require_once __DIR__ . '/_layout.php';
-admin_head('控制台');
+admin_head(__('page.console'));
 ?>
 <div class="adm-head">
-  <h2>控制台</h2>
-  <a href="../index.php" target="_blank" rel="noopener" class="adm-btn"><i class="fa-solid fa-up-right-from-square"></i> ショップを表示</a>
+  <h2><?= htmlspecialchars(__('page.console')) ?></h2>
+  <a href="../index.php" target="_blank" rel="noopener" class="adm-btn"><i class="fa-solid fa-up-right-from-square"></i> <?= htmlspecialchars(__('btn.view_shop')) ?></a>
 </div>
 
-<section class="adm-dash-stats" aria-label="概要">
+<section class="adm-dash-stats" aria-label="<?= htmlspecialchars(__('dash.overview')) ?>">
   <a href="products.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-box"></i></span>
     <span class="adm-stat-num"><?= $productTotal ?></span>
-    <span class="adm-stat-label">登録商品</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_products')) ?></span>
   </a>
   <a href="categories.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-tags"></i></span>
     <span class="adm-stat-num"><?= $categoryTotal ?></span>
-    <span class="adm-stat-label">カテゴリ</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_categories')) ?></span>
   </a>
   <a href="featured.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-star"></i></span>
     <span class="adm-stat-num"><?= $featuredCount ?><small>/<?= $featuredMax ?></small></span>
-    <span class="adm-stat-label">おすすめ</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_featured')) ?></span>
   </a>
   <a href="banners.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-panorama"></i></span>
     <span class="adm-stat-num"><?= $bannerTotal ?></span>
-    <span class="adm-stat-label">バナー</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_banners')) ?></span>
   </a>
   <a href="media.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-images"></i></span>
     <span class="adm-stat-num"><?= $imageFileCount ?></span>
-    <span class="adm-stat-label">商品画像ファイル</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_images')) ?></span>
   </a>
   <?php if ($noImageCount > 0): ?>
   <a href="products.php" class="adm-stat-card adm-stat-card--warn">
     <span class="adm-stat-icon"><i class="fa-solid fa-image"></i></span>
     <span class="adm-stat-num"><?= $noImageCount ?></span>
-    <span class="adm-stat-label">画像未設定の商品</span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_no_image')) ?></span>
   </a>
   <?php endif; ?>
 </section>
 
 <div class="adm-dash-grid">
   <section class="adm-dash-panel">
-    <h3 class="adm-dash-panel-title"><i class="fa-solid fa-bolt"></i> クイック操作</h3>
+    <h3 class="adm-dash-panel-title"><i class="fa-solid fa-bolt"></i> <?= htmlspecialchars(__('dash.quick')) ?></h3>
     <div class="adm-dash-actions">
-      <a href="edit.php" class="adm-dash-action adm-dash-action--primary"><i class="fa-solid fa-plus"></i> 商品を追加</a>
-      <a href="products.php" class="adm-dash-action"><i class="fa-solid fa-list"></i> 商品一覧</a>
-      <a href="import.php" class="adm-dash-action"><i class="fa-solid fa-file-excel"></i> Excel取込</a>
-      <a href="media.php" class="adm-dash-action"><i class="fa-solid fa-images"></i> 画像管理</a>
-      <a href="categories.php" class="adm-dash-action"><i class="fa-solid fa-tags"></i> カテゴリ</a>
-      <a href="featured.php" class="adm-dash-action"><i class="fa-solid fa-star"></i> おすすめ</a>
-      <a href="banners.php" class="adm-dash-action"><i class="fa-solid fa-panorama"></i> バナー</a>
+      <a href="edit.php" class="adm-dash-action adm-dash-action--primary"><i class="fa-solid fa-plus"></i> <?= htmlspecialchars(__('nav.product_add')) ?></a>
+      <a href="products.php" class="adm-dash-action"><i class="fa-solid fa-list"></i> <?= htmlspecialchars(__('nav.product_list')) ?></a>
+      <a href="import.php" class="adm-dash-action"><i class="fa-solid fa-file-excel"></i> <?= htmlspecialchars(__('nav.import')) ?></a>
+      <a href="media.php" class="adm-dash-action"><i class="fa-solid fa-images"></i> <?= htmlspecialchars(__('nav.media')) ?></a>
+      <a href="categories.php" class="adm-dash-action"><i class="fa-solid fa-tags"></i> <?= htmlspecialchars(__('nav.categories')) ?></a>
+      <a href="featured.php" class="adm-dash-action"><i class="fa-solid fa-star"></i> <?= htmlspecialchars(__('nav.featured')) ?></a>
+      <a href="banners.php" class="adm-dash-action"><i class="fa-solid fa-panorama"></i> <?= htmlspecialchars(__('nav.banners')) ?></a>
     </div>
   </section>
 
   <section class="adm-dash-panel">
-    <h3 class="adm-dash-panel-title"><i class="fa-solid fa-gear"></i> サイト設定</h3>
+    <h3 class="adm-dash-panel-title"><i class="fa-solid fa-gear"></i> <?= htmlspecialchars(__('dash.site_settings')) ?></h3>
     <dl class="adm-dash-dl">
-      <dt>会社名</dt>
+      <dt><?= htmlspecialchars(__('dash.company')) ?></dt>
       <dd><?= htmlspecialchars($config['company_name_ja'] ?? '') ?></dd>
-      <dt>保存方式</dt>
+      <dt><?= htmlspecialchars(__('dash.storage')) ?></dt>
       <dd><code><?= htmlspecialchars($storage) ?></code></dd>
-      <dt>ショップ URL</dt>
+      <dt><?= htmlspecialchars(__('dash.shop_url')) ?></dt>
       <dd><a href="<?= htmlspecialchars($config['shop_site_url'] ?? '') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($config['shop_site_url'] ?? '') ?></a></dd>
-      <dt>本社サイト</dt>
+      <dt><?= htmlspecialchars(__('dash.main_site')) ?></dt>
       <dd><a href="<?= htmlspecialchars($config['main_site_url'] ?? '') ?>" target="_blank" rel="noopener"><?= htmlspecialchars($config['main_site_url'] ?? '') ?></a></dd>
     </dl>
   </section>
 
   <section class="adm-dash-panel adm-dash-panel--wide">
     <h3 class="adm-dash-panel-title">
-      <i class="fa-solid fa-heart-pulse"></i> 保存環境
+      <i class="fa-solid fa-heart-pulse"></i> <?= htmlspecialchars(__('dash.health')) ?>
       <?php if ($healthOk): ?>
-        <span class="adm-dash-badge adm-dash-badge--ok">正常</span>
+        <span class="adm-dash-badge adm-dash-badge--ok"><?= htmlspecialchars(__('dash.health_ok')) ?></span>
       <?php else: ?>
-        <span class="adm-dash-badge adm-dash-badge--err">要確認 <?= count($healthIssues) ?> 件</span>
+        <span class="adm-dash-badge adm-dash-badge--err"><?= htmlspecialchars(__('dash.health_issues', ['n' => count($healthIssues)])) ?></span>
       <?php endif; ?>
     </h3>
     <ul class="adm-dash-health">
-      <?php foreach ($health as $row): ?>
+      <?php foreach ($health as $row):
+        $row = admin_health_translate($row);
+      ?>
       <li class="<?= $row['ok'] ? 'ok' : 'ng' ?>">
         <span class="adm-dash-health-label"><?= htmlspecialchars($row['label']) ?></span>
         <span class="adm-dash-health-detail"><?= htmlspecialchars($row['detail']) ?></span>
@@ -132,9 +134,9 @@ admin_head('控制台');
       <?php endforeach; ?>
     </ul>
     <p class="adm-dash-foot">
-      <a href="check.php" class="adm-btn adm-btn-sm"><i class="fa-solid fa-stethoscope"></i> 詳細診断</a>
+      <a href="check.php" class="adm-btn adm-btn-sm"><i class="fa-solid fa-stethoscope"></i> <?= htmlspecialchars(__('btn.detail_check')) ?></a>
       <?php if ($storage === 'mysql'): ?>
-      <a href="migrate.php" class="adm-btn adm-btn-sm"><i class="fa-solid fa-database"></i> DB移行</a>
+      <a href="migrate.php" class="adm-btn adm-btn-sm"><i class="fa-solid fa-database"></i> <?= htmlspecialchars(__('nav.migrate')) ?></a>
       <?php endif; ?>
     </p>
   </section>
@@ -142,15 +144,15 @@ admin_head('控制台');
 
 <?php if (!empty($products)): ?>
 <section class="adm-dash-panel" style="margin-top:20px;">
-  <h3 class="adm-dash-panel-title"><i class="fa-solid fa-clock"></i> 直近の商品（最大5件）</h3>
+  <h3 class="adm-dash-panel-title"><i class="fa-solid fa-clock"></i> <?= htmlspecialchars(__('dash.recent_products')) ?></h3>
   <table class="adm-table">
     <thead>
       <tr>
-        <th class="adm-col-id">商品番号</th>
-        <th class="adm-col-name">商品名</th>
-        <th class="adm-col-cat">カテゴリ</th>
-        <th class="adm-col-price">価格</th>
-        <th class="adm-col-actions">操作</th>
+        <th class="adm-col-id"><?= htmlspecialchars(__('col.product_id')) ?></th>
+        <th class="adm-col-name"><?= htmlspecialchars(__('col.name')) ?></th>
+        <th class="adm-col-cat"><?= htmlspecialchars(__('col.category')) ?></th>
+        <th class="adm-col-price"><?= htmlspecialchars(__('col.price')) ?></th>
+        <th class="adm-col-actions"><?= htmlspecialchars(__('col.actions')) ?></th>
       </tr>
     </thead>
     <tbody>
@@ -163,14 +165,14 @@ admin_head('控制台');
         <td class="adm-col-cat"><?= htmlspecialchars($cat) ?></td>
         <td class="adm-col-price">¥<?= number_format($p['price']) ?></td>
         <td class="adm-col-actions">
-          <a class="adm-btn adm-btn-sm" href="edit.php?id=<?= urlencode($p['id']) ?>"><i class="fa-solid fa-pen"></i> 編集</a>
+          <a class="adm-btn adm-btn-sm" href="edit.php?id=<?= urlencode($p['id']) ?>"><i class="fa-solid fa-pen"></i> <?= htmlspecialchars(__('btn.edit')) ?></a>
         </td>
       </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
   <?php if ($productTotal > 5): ?>
-  <p class="adm-dash-foot"><a href="products.php">すべての商品を見る（<?= $productTotal ?> 件）→</a></p>
+  <p class="adm-dash-foot"><a href="products.php"><?= htmlspecialchars(__('dash.view_all_products', ['n' => $productTotal])) ?></a></p>
   <?php endif; ?>
 </section>
 <?php endif; ?>

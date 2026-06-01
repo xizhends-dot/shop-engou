@@ -1,12 +1,4 @@
 <?php
-/**
- * データ移行ツール：data/products.json → MySQL
- * ------------------------------------------------------------------
- * 既に JSON モードで商品を編集していて、その内容を MySQL に移したいときに使用。
- * - ブラウザ: /shop/admin/migrate.php（要ログイン）
- * - CLI:      php shop/admin/migrate.php
- * 実行すると JSON の全商品を MySQL に書き込みます（MySQL側は全置換）。
- */
 require_once __DIR__ . '/auth.php';
 
 $cli = (PHP_SAPI === 'cli');
@@ -20,10 +12,10 @@ if ($cli || ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] 
         $ok = store_save_mysql($json);
         $n = count($json['products']);
         $result = $ok
-            ? ['type' => 'ok',  'msg' => "MySQL へ取り込みました：商品 {$n} 件。"]
-            : ['type' => 'err', 'msg' => 'MySQL への保存に失敗しました。'];
+            ? ['type' => 'ok',  'msg' => $cli ? "OK: {$n}" : __('migrate.ok', ['n' => $n])]
+            : ['type' => 'err', 'msg' => $cli ? 'FAIL' : __('migrate.fail')];
     } catch (Throwable $e) {
-        $result = ['type' => 'err', 'msg' => 'エラー: ' . $e->getMessage()];
+        $result = ['type' => 'err', 'msg' => ($cli ? 'ERR: ' : '') . $e->getMessage()];
     }
 
     if ($cli) {
@@ -34,11 +26,12 @@ if ($cli || ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_check($_POST['csrf'] 
 
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
-admin_head('データ移行（JSON → MySQL）');
+$dbName = htmlspecialchars(shop_config()['db']['name'] ?? '');
+admin_head(__('page.migrate'));
 ?>
 <div class="adm-head">
-  <h2>データ移行：JSON → MySQL</h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 控制台へ</a>
+  <h2><?= htmlspecialchars(__('migrate.title')) ?></h2>
+  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_console')) ?></a>
 </div>
 
 <?php if ($result): ?>
@@ -47,16 +40,14 @@ admin_head('データ移行（JSON → MySQL）');
 
 <div class="adm-form" style="max-width:680px;">
   <p class="adm-note">
-    現在 <code>data/products.json</code> にある商品データを、MySQL（<code><?= htmlspecialchars(shop_config()['db']['name'] ?? '') ?></code>）へ取り込みます。<br>
-    <strong>事前に</strong> <code>db/schema.sql</code> でテーブルを作成し、<code>config.php</code> の <code>db</code> 接続情報を設定してください。<br>
-    実行すると MySQL 側の既存データは<strong>全て置き換え</strong>られます。
+    <?= __('migrate.note', ['db' => $dbName]) ?>
   </p>
-  <form method="post" onsubmit="return confirm('JSONの内容でMySQLを上書きします。よろしいですか？');">
+  <form method="post" onsubmit="return confirm(<?= json_encode(__('migrate.confirm'), JSON_UNESCAPED_UNICODE) ?>);">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-database"></i> MySQL へ取り込む</button>
+    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-database"></i> <?= htmlspecialchars(__('btn.import_mysql')) ?></button>
   </form>
   <p class="adm-note" style="margin-top:18px;">
-    取り込み後、<code>config.php</code> の <code>'storage'</code> を <code>'mysql'</code> に変更すると、サイト全体が MySQL を参照します。
+    <?= __('migrate.after') ?>
   </p>
 </div>
 <?php admin_foot(); ?>

@@ -5,7 +5,7 @@ admin_require_login();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act = $_POST['action'] ?? '';
     if (!csrf_check($_POST['csrf'] ?? '')) {
-        set_flash('セッションの有効期限が切れました。', 'err');
+        set_flash(__('flash.session_expired'), 'err');
         header('Location: banners.php'); exit;
     }
 
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $s = [];
         foreach ($keys as $kk) { $s[$kk] = trim((string)($_POST[$kk] ?? '')); }
         banner_settings_save($s);
-        set_flash('バナー共通設定を保存しました。');
+        set_flash(__('flash.banner_settings_saved'));
         header('Location: banners.php'); exit;
     }
 
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         banners_save($banners);
-        set_flash("バナーを追加しました：成功 {$ok} 件" . ($ng ? " / 失敗 {$ng} 件" : ''), $ng ? 'err' : 'ok');
+        set_flash(__('flash.banner_added', ['ok' => $ok, 'fail' => $ng ? __('flash.banner_added_fail', ['ng' => $ng]) : '']), $ng ? 'err' : 'ok');
         header('Location: banners.php'); exit;
     }
 
@@ -62,18 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         banners_save($new);
-        set_flash('保存しました。');
+        set_flash(__('flash.saved'));
         header('Location: banners.php'); exit;
     }
 
     if ($act === 'replace') {
         $path = (string)($_POST['path'] ?? '');
         if (!banner_admin_valid_path($path)) {
-            set_flash('不正な画像パスです。', 'err');
+            set_flash(__('flash.banner_bad_path'), 'err');
             header('Location: banners.php'); exit;
         }
         if (empty($_FILES['file']['tmp_name']) || ($_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            set_flash('画像ファイルを選択してください。', 'err');
+            set_flash(__('flash.banner_pick_file'), 'err');
             header('Location: banners.php'); exit;
         }
         $banners = banners_load();
@@ -85,13 +85,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         if ($idx < 0) {
-            set_flash('対象のバナーが見つかりませんでした。', 'err');
+            set_flash(__('flash.banner_not_found'), 'err');
             header('Location: banners.php'); exit;
         }
         $uploadErr = '';
         $rel = store_handle_upload($_FILES['file'], BANNER_DIR, BANNER_REL, $uploadErr);
         if ($rel === null || $rel === '') {
-            set_flash($uploadErr !== '' ? $uploadErr : '画像のアップロードに失敗しました。形式・サイズを確認してください。', 'err');
+            set_flash($uploadErr !== '' ? $uploadErr : __('flash.banner_upload_fail'), 'err');
             header('Location: banners.php'); exit;
         }
         $old = $banners[$idx];
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($rel !== $path) {
             store_delete_image($path);
         }
-        set_flash('バナー画像を差し替えました。');
+        set_flash(__('flash.banner_replaced'));
         header('Location: banners.php'); exit;
     }
 
@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $banners = array_values(array_filter(banners_load(), function ($b) use ($path) { return $b['image'] !== $path; }));
         banners_save($banners);
         store_delete_image($path);
-        set_flash('バナーを削除しました。');
+        set_flash(__('flash.banner_deleted'));
         header('Location: banners.php'); exit;
     }
 }
@@ -138,74 +138,73 @@ $banners  = banners_load();
 $settings = banner_settings_load();
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
-admin_head('バナー管理');
+admin_head(__('page.banners'));
 ?>
 <div class="adm-head">
-  <h2>バナー管理 <span class="adm-count"><?= count($banners) ?> 枚</span></h2>
-  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 控制台へ</a>
+  <h2><?= htmlspecialchars(__('page.banners')) ?> <span class="adm-count"><?= count($banners) ?> <?= htmlspecialchars(__('banner.count')) ?></span></h2>
+  <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_console')) ?></a>
 </div>
 
-<!-- バナー共通設定 -->
 <div class="adm-form" style="max-width:760px;margin-bottom:22px;">
-  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);">バナー共通設定</h3>
-  <p class="adm-note">小見出し・ボタン・既定文案の設定です。各バナーで個別のタイトルを設定していない場合は、ここの「既定タイトル／サブテキスト」が表示されます。HTMLタグ（&lt;br&gt; / &lt;span class='accent'&gt;～&lt;/span&gt;）も使えます。</p>
+  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);"><?= htmlspecialchars(__('banner.settings_title')) ?></h3>
+  <p class="adm-note"><?= __('banner.settings_note') ?></p>
   <form method="post">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
     <input type="hidden" name="action" value="settings">
     <div class="adm-field">
-      <label>小見出し（eyebrow）</label>
+      <label><?= htmlspecialchars(__('banner.eyebrow')) ?></label>
       <input type="text" name="eyebrow" value="<?= htmlspecialchars($settings['eyebrow']) ?>">
     </div>
     <div class="adm-field">
-      <label>既定タイトル</label>
+      <label><?= htmlspecialchars(__('banner.default_title')) ?></label>
       <input type="text" name="title" value="<?= htmlspecialchars($settings['title']) ?>">
     </div>
     <div class="adm-field">
-      <label>既定サブテキスト</label>
+      <label><?= htmlspecialchars(__('banner.default_subtitle')) ?></label>
       <input type="text" name="subtitle" value="<?= htmlspecialchars($settings['subtitle']) ?>">
     </div>
     <div class="adm-grid">
       <div class="adm-field">
-        <label>ボタン1 テキスト</label>
+        <label><?= htmlspecialchars(__('banner.btn1_text')) ?></label>
         <input type="text" name="btn1_text" value="<?= htmlspecialchars($settings['btn1_text']) ?>">
       </div>
       <div class="adm-field">
-        <label>ボタン1 リンク（既定）</label>
+        <label><?= htmlspecialchars(__('banner.btn1_link')) ?></label>
         <input type="text" name="btn1_link" value="<?= htmlspecialchars($settings['btn1_link']) ?>">
       </div>
     </div>
     <div class="adm-grid">
       <div class="adm-field">
-        <label>ボタン2 テキスト</label>
+        <label><?= htmlspecialchars(__('banner.btn2_text')) ?></label>
         <input type="text" name="btn2_text" value="<?= htmlspecialchars($settings['btn2_text']) ?>">
       </div>
       <div class="adm-field">
-        <label>ボタン2 リンク</label>
+        <label><?= htmlspecialchars(__('banner.btn2_link')) ?></label>
         <input type="text" name="btn2_link" value="<?= htmlspecialchars($settings['btn2_link']) ?>">
       </div>
     </div>
     <div class="adm-formfoot">
-      <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> 共通設定を保存</button>
+      <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> <?= htmlspecialchars(__('btn.save_common')) ?></button>
     </div>
   </form>
 </div>
 
 <div class="adm-form" style="max-width:760px;">
-  <h3 style="font-size:15px;margin-bottom:12px;color:var(--heading);">バナー画像をアップロード</h3>
-  <p class="adm-note">トップページの大きなバナーに表示され、2枚以上で自動的にスライド（横長の画像、目安 1600×700px 程度を推奨）。</p>
+  <h3 style="font-size:15px;margin-bottom:12px;color:var(--heading);"><?= htmlspecialchars(__('banner.upload_title')) ?></h3>
+  <p class="adm-note"><?= htmlspecialchars(__('banner.upload_note')) ?></p>
   <form method="post" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
     <input type="hidden" name="action" value="upload">
     <div class="adm-field" style="margin-bottom:12px;">
       <input type="file" name="files[]" accept="image/*" multiple required>
-      <small>JPG / PNG / WebP / GIF、1枚あたり8MBまで。複数選択できます。</small>
+      <small><?= htmlspecialchars(__('banner.upload_hint')) ?></small>
     </div>
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-upload"></i> アップロード</button>
+    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-upload"></i> <?= htmlspecialchars(__('btn.upload')) ?></button>
   </form>
 </div>
 
 <?php if (empty($banners)): ?>
-  <div class="adm-empty" style="margin-top:20px;">まだバナーがありません。アップロードするとトップに表示されます（未登録の間は従来のグラデーション背景）。</div>
+  <div class="adm-empty" style="margin-top:20px;"><?= htmlspecialchars(__('banner.empty')) ?></div>
 <?php else: ?>
 <form method="post" style="margin-top:20px;">
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
@@ -216,11 +215,11 @@ admin_head('バナー管理');
       <input type="hidden" name="order[]" value="<?= htmlspecialchars($b['image']) ?>">
       <img src="../<?= htmlspecialchars($b['image']) ?>" alt="">
       <div class="banner-admin-meta">
-        <label>タイトル（このバナーの見出し・HTML可）</label>
+        <label><?= htmlspecialchars(__('banner.per_title')) ?></label>
         <input type="text" name="title[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['title']) ?>" placeholder="例: 新生活応援フェア開催中！">
-        <label style="margin-top:8px;">サブテキスト</label>
+        <label style="margin-top:8px;"><?= htmlspecialchars(__('banner.per_subtitle')) ?></label>
         <input type="text" name="subtitle[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['subtitle']) ?>" placeholder="例: 人気の家電をお得な価格で">
-        <label style="margin-top:8px;">「商品を見る」ボタンのリンク先（任意）</label>
+        <label style="margin-top:8px;"><?= htmlspecialchars(__('banner.per_link')) ?></label>
         <input type="text" name="link[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['link']) ?>" placeholder="例: list.php / product.php?id=nano-shower">
       </div>
       <div class="banner-admin-actions">
@@ -228,20 +227,20 @@ admin_head('バナー管理');
           <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
           <input type="hidden" name="action" value="replace">
           <input type="hidden" name="path" value="<?= htmlspecialchars($b['image']) ?>">
-          <label class="adm-btn adm-btn-sm banner-replace-btn" title="画像を差し替え">
-            <i class="fa-solid fa-image"></i> 差し替え
+          <label class="adm-btn adm-btn-sm banner-replace-btn" title="<?= htmlspecialchars(__('btn.replace')) ?>">
+            <i class="fa-solid fa-image"></i> <?= htmlspecialchars(__('btn.replace')) ?>
             <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" class="banner-replace-input">
           </label>
         </form>
-        <button type="button" class="adm-btn adm-btn-sm js-up" title="上へ"><i class="fa-solid fa-arrow-up"></i></button>
-        <button type="button" class="adm-btn adm-btn-sm js-down" title="下へ"><i class="fa-solid fa-arrow-down"></i></button>
-        <button type="button" class="adm-btn adm-btn-sm adm-btn-danger js-del" title="削除"><i class="fa-solid fa-trash"></i></button>
+        <button type="button" class="adm-btn adm-btn-sm js-up" title="<?= htmlspecialchars(__('btn.up')) ?>"><i class="fa-solid fa-arrow-up"></i></button>
+        <button type="button" class="adm-btn adm-btn-sm js-down" title="<?= htmlspecialchars(__('btn.down')) ?>"><i class="fa-solid fa-arrow-down"></i></button>
+        <button type="button" class="adm-btn adm-btn-sm adm-btn-danger js-del" title="<?= htmlspecialchars(__('btn.delete')) ?>"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
     <?php endforeach; ?>
   </div>
   <div class="adm-formfoot">
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> 並び順・リンクを保存</button>
+    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> <?= htmlspecialchars(__('banner.save_order')) ?></button>
   </div>
 </form>
 
@@ -272,7 +271,7 @@ admin_head('バナー管理');
   list.querySelectorAll('.banner-replace-input').forEach(function (inp) {
     inp.addEventListener('change', function () {
       if (!inp.files || !inp.files.length) return;
-      if (!confirm('このバナーの画像を差し替えますか？')) {
+      if (!confirm(<?= json_encode(__('banner.replace_confirm'), JSON_UNESCAPED_UNICODE) ?>)) {
         inp.value = '';
         return;
       }
@@ -282,7 +281,7 @@ admin_head('バナー管理');
   // 削除
   list.querySelectorAll('.js-del').forEach(function (b) {
     b.addEventListener('click', function () {
-      if (!confirm('このバナーを削除しますか？')) return;
+      if (!confirm(<?= json_encode(__('banner.delete_confirm'), JSON_UNESCAPED_UNICODE) ?>)) return;
       var img = b.closest('.banner-admin-item').dataset.img;
       document.getElementById('delPath').value = img;
       document.getElementById('delForm').submit();

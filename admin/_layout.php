@@ -5,7 +5,6 @@ function adm_current_page() {
     return basename($_SERVER['SCRIPT_NAME'] ?? '', '.php');
 }
 
-/** 二级菜单：下拉组 */
 function adm_nav_dropdown($label, $icon, array $items, $modifier = '') {
     $cur = adm_current_page();
     $hasActive = false;
@@ -52,29 +51,30 @@ function admin_head($title, $showNav = true) {
     global $config;
 
     $productItems = [
-        ['products.php', 'fa-list', '商品一覧', ['products', 'delete']],
-        ['edit.php', 'fa-plus', '新規追加', ['edit']],
-        ['featured.php', 'fa-star', 'おすすめ', ['featured']],
-        ['categories.php', 'fa-tags', 'カテゴリ', ['categories']],
-        ['media.php', 'fa-images', '画像管理', ['media']],
-        ['import.php', 'fa-file-excel', 'Excel取込', ['import']],
+        ['products.php', 'fa-list', __('nav.product_list'), ['products', 'delete']],
+        ['edit.php', 'fa-plus', __('nav.product_add'), ['edit']],
+        ['featured.php', 'fa-star', __('nav.featured'), ['featured']],
+        ['categories.php', 'fa-tags', __('nav.categories'), ['categories']],
+        ['media.php', 'fa-images', __('nav.media'), ['media']],
+        ['import.php', 'fa-file-excel', __('nav.import'), ['import']],
     ];
     $siteItems = [
-        ['banners.php', 'fa-panorama', 'バナー管理', ['banners']],
+        ['banners.php', 'fa-panorama', __('nav.banners'), ['banners']],
     ];
     $testItems = [
-        ['check.php', 'fa-stethoscope', '保存チェック', ['check']],
-        ['migrate.php', 'fa-database', 'DB移行', ['migrate']],
+        ['check.php', 'fa-stethoscope', __('nav.check'), ['check']],
+        ['migrate.php', 'fa-database', __('nav.migrate'), ['migrate']],
     ];
+    $htmlLang = __('meta.html_lang');
     ?>
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="<?= htmlspecialchars($htmlLang) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#14142e">
-<title><?= htmlspecialchars($title) ?> | 管理画面</title>
+<title><?= htmlspecialchars($title) ?> | <?= htmlspecialchars(__('meta.admin_suffix')) ?></title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="../favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -84,15 +84,16 @@ function admin_head($title, $showNav = true) {
 <?php if ($showNav): ?>
 <header class="adm-nav">
   <div class="adm-nav-inner">
-    <a href="index.php" class="adm-brand"><?= htmlspecialchars($config['company_name_ja']) ?> <span>SHOP 管理</span></a>
-    <nav class="adm-links" aria-label="管理メニュー">
-      <?= adm_nav_top_link('index.php', 'fa-gauge-high', '控制台', '', '', ['index']) ?>
-      <?= adm_nav_dropdown('商品', 'fa-box', $productItems) ?>
-      <?= adm_nav_dropdown('サイト', 'fa-globe', $siteItems) ?>
-      <?= adm_nav_dropdown('テスト', 'fa-flask', $testItems, 'adm-dropdown--test') ?>
+    <a href="index.php" class="adm-brand"><?= htmlspecialchars($config['company_name_ja']) ?> <span><?= htmlspecialchars(__('nav.brand_suffix')) ?></span></a>
+    <nav class="adm-links" aria-label="<?= htmlspecialchars(__('nav.menu')) ?>">
+      <?= adm_nav_top_link('index.php', 'fa-gauge-high', __('nav.console'), '', '', ['index']) ?>
+      <?= adm_nav_dropdown(__('nav.products'), 'fa-box', $productItems) ?>
+      <?= adm_nav_dropdown(__('nav.site'), 'fa-globe', $siteItems) ?>
+      <?= adm_nav_dropdown(__('nav.test'), 'fa-flask', $testItems, 'adm-dropdown--test') ?>
+      <?= admin_lang_switcher_html() ?>
       <div class="adm-nav-util">
-        <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', 'サイトを見る', '', ' target="_blank" rel="noopener"') ?>
-        <?= adm_nav_top_link('logout.php', 'fa-right-from-bracket', 'ログアウト', 'adm-logout') ?>
+        <?= adm_nav_top_link('../index.php', 'fa-up-right-from-square', __('nav.view_site'), '', ' target="_blank" rel="noopener"') ?>
+        <?= adm_nav_top_link('logout.php', 'fa-right-from-bracket', __('nav.logout'), 'adm-logout') ?>
       </div>
     </nav>
   </div>

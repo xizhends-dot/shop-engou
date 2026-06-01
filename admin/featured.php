@@ -8,17 +8,16 @@ $cats     = $data['categories'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_check($_POST['csrf'] ?? '')) {
-        set_flash('セッションの有効期限が切れました。', 'err');
+        set_flash(__('flash.session_expired'), 'err');
         header('Location: featured.php'); exit;
     }
     $ids = $_POST['featured'] ?? [];
-    // 存在する商品IDのみ・最大件数は featured_save 側で制限
     $valid = [];
     foreach ((array)$ids as $id) {
         if (store_find_index($products, $id) >= 0) { $valid[] = $id; }
     }
     featured_save($valid);
-    set_flash('おすすめ商品を保存しました。');
+    set_flash(__('flash.featured_saved'));
     header('Location: featured.php'); exit;
 }
 
@@ -26,15 +25,15 @@ $featured = featured_load();
 $max = defined('FEATURED_MAX') ? FEATURED_MAX : 12;
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
-admin_head('おすすめ商品');
+admin_head(__('page.featured'));
 ?>
 <div class="adm-head">
-  <h2>おすすめ商品 <span class="adm-count">トップに表示（最大<?= $max ?>件）</span></h2>
-  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
+  <h2><?= htmlspecialchars(__('page.featured')) ?> <span class="adm-count"><?= htmlspecialchars(__('feat.title_hint', ['max' => $max])) ?></span></h2>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_products')) ?></a>
 </div>
 
 <p class="adm-note" style="margin-bottom:16px;">
-  チェックした商品がトップページの「おすすめ商品」に表示されます（最大 <?= $max ?> 件）。未選択の場合は先頭の商品が自動表示されます。<span id="featCount" style="font-weight:700;color:var(--accent-strong);"></span>
+  <?= htmlspecialchars(__('feat.note', ['max' => $max])) ?><span id="featCount" style="font-weight:700;color:var(--accent-strong);"></span>
 </p>
 
 <form method="post" class="adm-form" style="max-width:none;">
@@ -56,18 +55,19 @@ admin_head('おすすめ商品');
     <?php endforeach; ?>
   </div>
   <div class="adm-formfoot">
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存する</button>
+    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> <?= htmlspecialchars(__('btn.save')) ?></button>
   </div>
 </form>
 
 <script>
 (function () {
   var MAX = <?= (int)$max ?>;
+  var tpl = <?= json_encode(__('feat.selected', ['n' => 0, 'max' => $max]), JSON_UNESCAPED_UNICODE) ?>;
   var boxes = Array.prototype.slice.call(document.querySelectorAll('.feat-item input[type=checkbox]'));
   var counter = document.getElementById('featCount');
   function update() {
     var n = boxes.filter(function (b) { return b.checked; }).length;
-    counter.textContent = '（選択中 ' + n + ' / ' + MAX + '）';
+    counter.textContent = tpl.replace('{n}', n).replace('{max}', MAX);
     boxes.forEach(function (b) {
       b.closest('.feat-item').classList.toggle('checked', b.checked);
       if (!b.checked) b.disabled = (n >= MAX);

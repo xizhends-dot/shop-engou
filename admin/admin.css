@@ -77,6 +77,17 @@ img { display: block; max-width: 100%; }
 .adm-nav-util .adm-logout { color: #ffb4b4; }
 .adm-nav-util .adm-logout:hover { background: rgba(229,72,77,0.22); color: #ffc9c9; }
 
+.adm-lang-switch { display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid rgba(255,255,255,0.14); margin-left: 4px; }
+.adm-lang-btn { font-size: 11px; font-weight: 700; padding: 6px 9px; border-radius: 6px; color: rgba(255,255,255,0.65); transition: background .15s, color .15s; }
+.adm-lang-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.adm-lang-btn.active { color: var(--accent); background: rgba(222,241,63,0.18); }
+.adm-login-lang { margin-top: 18px; text-align: center; }
+.adm-login-lang .adm-lang-switch { border-left: none; padding: 0; justify-content: center; }
+.adm-login-lang .adm-lang-btn { color: var(--text-dim); }
+.adm-login-lang .adm-lang-btn.active { color: var(--accent-strong); background: rgba(222,241,63,0.25); }
+
+html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif; }
+
 @media (max-width: 900px) {
   .adm-nav-inner { flex-wrap: wrap; padding: 10px 16px; align-items: flex-start; }
   .adm-links { width: 100%; justify-content: flex-start; gap: 2px; }

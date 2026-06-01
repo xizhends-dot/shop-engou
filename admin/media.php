@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act    = $_POST['action'] ?? '';
     $postDir = media_safe_dir($_POST['dir'] ?? '');
     if (!csrf_check($_POST['csrf'] ?? '')) {
-        set_flash('セッションの有効期限が切れました。', 'err');
+        set_flash(__('flash.session_expired'), 'err');
         header('Location: media.php' . ($postDir !== '' ? '?dir=' . urlencode($postDir) : '')); exit;
     }
     $redir = 'media.php' . ($postDir !== '' ? '?dir=' . urlencode($postDir) : '');
@@ -16,10 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'mkdir') {
         $name = media_safe_name($_POST['folder'] ?? '');
         if ($name === '') {
-            set_flash('フォルダ名は半角英数・ハイフン・アンダースコア（1〜64文字）で入力してください。', 'err');
+            set_flash(__('flash.folder_name_invalid'), 'err');
         } else {
             media_create_folder($postDir, $name);
-            set_flash('フォルダ「' . $name . '」を作成しました。');
+            set_flash(__('flash.folder_created', ['name' => $name]));
         }
         header('Location: ' . $redir); exit;
     }
@@ -64,9 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $removed = store_unlink_image_refs($data, $path);
             store_delete_image($path);
             if ($removed > 0) { store_save($data); }
-            set_flash('画像を削除しました' . ($removed ? "（{$removed} 件の商品から参照を解除）" : '') . '。');
+            set_flash(__('flash.image_deleted', ['extra' => $removed ? __('flash.image_deleted_refs', ['n' => $removed]) : '']));
         } else {
-            set_flash('削除対象の画像パスが不正です。', 'err');
+            set_flash(__('flash.image_path_invalid'), 'err');
         }
         header('Location: ' . $redir); exit;
     }
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($skip > 0) { $msg .= "。スキップ {$skip} 件"; }
             set_flash($msg . '。');
         } else {
-            set_flash('削除できる画像が選択されていません。', 'err');
+            set_flash(__('flash.images_deleted_none'), 'err');
         }
         header('Location: ' . $redir); exit;
     }
@@ -102,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'rmdir') {
         $target = media_safe_dir($_POST['target'] ?? '');
         if ($target !== '' && media_delete_folder($target)) {
-            set_flash('フォルダを削除しました。');
+            set_flash(__('flash.folder_deleted'));
         } else {
-            set_flash('フォルダを削除できませんでした（空でない、または存在しません）。', 'err');
+            set_flash(__('flash.folder_delete_fail'), 'err');
         }
         header('Location: ' . $redir); exit;
     }
@@ -114,7 +114,7 @@ try {
     $data = store_load();
 } catch (Throwable $e) {
     $data = ['categories' => [], 'products' => []];
-    set_flash('データの読み込みに失敗しました: ' . $e->getMessage(), 'err');
+    set_flash(__('flash.data_load_fail', ['msg' => $e->getMessage()]), 'err');
 }
 
 $list  = media_list($cur);
@@ -151,14 +151,14 @@ function render_media_tree($nodes, $cur) {
 
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
-admin_head('画像管理');
+admin_head(__('page.media'));
 
 // パンくず用
 $crumbs = $cur === '' ? [] : explode('/', $cur);
 ?>
 <div class="adm-head">
-  <h2>画像管理</h2>
-  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
+  <h2><?= htmlspecialchars(__('page.media')) ?></h2>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_products')) ?></a>
 </div>
 
 <!-- 操作（アップロード + 新規フォルダ）：上部・全幅 -->

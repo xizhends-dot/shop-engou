@@ -6,6 +6,8 @@
 require_once __DIR__ . '/../lib/store.php';
 $config = require __DIR__ . '/../config.php';
 admin_session_start();
+require_once __DIR__ . '/i18n.php';
+admin_lang_init();
 
 /** フラッシュメッセージ */
 function set_flash($msg, $type = 'ok') { $_SESSION['flash'] = ['msg' => $msg, 'type' => $type]; }

@@ -31,7 +31,7 @@ $report = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     if (!csrf_check($_POST['csrf'] ?? '')) {
-        $errors[] = 'セッションの有効期限が切れました。もう一度お試しください。';
+        $errors[] = __('login.error_session');
     } elseif (!isset($_FILES['datafile']) || $_FILES['datafile']['error'] !== UPLOAD_ERR_OK) {
         $errors[] = 'Excel（.xlsx）または CSV ファイルを選択してください。';
     } else {
@@ -89,11 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $zipOk = class_exists('ZipArchive');
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
-admin_head('Excel取込');
+admin_head(__('page.import'));
 ?>
 <div class="adm-head">
-  <h2>Excel 取込・書き出し</h2>
-  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> 商品一覧へ</a>
+  <h2><?= htmlspecialchars(__('page.import')) ?></h2>
+  <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_products')) ?></a>
 </div>
 
 <?php if (!$zipOk): ?>
