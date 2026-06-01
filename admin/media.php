@@ -60,10 +60,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'delete') {
         $data = store_load();
         $path = (string)($_POST['path'] ?? '');
-        $removed = store_unlink_image_refs($data, $path);
-        store_delete_image($path);
-        if ($removed > 0) { store_save($data); }
-        set_flash('画像を削除しました' . ($removed ? "（{$removed} 件の商品から参照を解除）" : '') . '。');
+        if (media_validate_product_image_path($path, $postDir)) {
+            $removed = store_unlink_image_refs($data, $path);
+            store_delete_image($path);
+            if ($removed > 0) { store_save($data); }
+            set_flash('画像を削除しました' . ($removed ? "（{$removed} 件の商品から参照を解除）" : '') . '。');
+        } else {
+            set_flash('削除対象の画像パスが不正です。', 'err');
+        }
+        header('Location: ' . $redir); exit;
+    }
+
+    if ($act === 'delete_batch') {
+        $data   = store_load();
+        $paths  = isset($_POST['paths']) && is_array($_POST['paths']) ? $_POST['paths'] : [];
+        $del    = 0;
+        $refs   = 0;
+        $skip   = 0;
+        foreach ($paths as $path) {
+            $path = (string)$path;
+            if (!media_validate_product_image_path($path, $postDir)) {
+                $skip++;
+                continue;
+            }
+            $refs += store_unlink_image_refs($data, $path);
+            store_delete_image($path);
+            $del++;
+        }
+        if ($refs > 0) { store_save($data); }
+        if ($del > 0) {
+            $msg = "画像を {$del} 枚削除しました";
+            if ($refs > 0) { $msg .= "（{$refs} 件の商品参照を解除）"; }
+            if ($skip > 0) { $msg .= "。スキップ {$skip} 件"; }
+            set_flash($msg . '。');
+        } else {
+            set_flash('削除できる画像が選択されていません。', 'err');
+        }
         header('Location: ' . $redir); exit;
     }
 
@@ -179,10 +211,28 @@ $crumbs = $cur === '' ? [] : explode('/', $cur);
     <?php if ($total === 0): ?>
       <div class="adm-empty" style="margin-top:20px;">このフォルダに画像はありません。アップロードするか、左のツリーから別のフォルダを選んでください。</div>
     <?php else: ?>
-    <div class="media-count"><?= $total ?> 枚<?= $pages > 1 ? '（' . $page . ' / ' . $pages . ' ページ）' : '' ?></div>
-    <div class="media-grid">
+    <div class="media-batch-bar">
+      <span class="media-count"><?= $total ?> 枚<?= $pages > 1 ? '（' . $page . ' / ' . $pages . ' ページ）' : '' ?></span>
+      <div class="media-batch-actions">
+        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectPage"><i class="fa-solid fa-check-double"></i> このページを全選択</button>
+        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectFolder"><i class="fa-solid fa-folder-check"></i> フォルダ内を全選択</button>
+        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectNone"><i class="fa-solid fa-xmark"></i> 選択解除</button>
+        <button type="button" class="adm-btn adm-btn-sm adm-btn-danger" id="btnBatchDelete" disabled><i class="fa-solid fa-trash"></i> 選択を削除（<span id="selCount">0</span>）</button>
+      </div>
+    </div>
+    <form method="post" id="mediaBatchForm" style="display:none;">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
+      <input type="hidden" name="action" value="delete_batch">
+      <input type="hidden" name="dir" value="<?= htmlspecialchars($cur) ?>">
+      <div id="batchPathsContainer"></div>
+    </form>
+    <div class="media-grid" id="mediaGrid">
       <?php foreach ($pageImages as $img): $used = $usage[$img] ?? []; ?>
-      <div class="media-item">
+      <div class="media-item" data-path="<?= htmlspecialchars($img, ENT_QUOTES) ?>">
+        <label class="media-pick">
+          <input type="checkbox" class="media-cb" value="<?= htmlspecialchars($img, ENT_QUOTES) ?>">
+          <span class="media-pick-ui" aria-hidden="true"></span>
+        </label>
         <div class="media-thumb"><img src="../<?= htmlspecialchars($img) ?>" alt="" loading="lazy"></div>
         <div class="media-meta">
           <input type="text" class="media-path" value="<?= htmlspecialchars($img) ?>" readonly onclick="this.select()">
@@ -308,6 +358,79 @@ $crumbs = $cur === '' ? [] : explode('/', $cur);
       })
       .catch(function (e) { dz.classList.remove('uploading'); setStatus(e.message || 'アップロードに失敗しました。'); });
   }
+})();
+
+// 一括選択・削除
+(function () {
+  var grid = document.getElementById('mediaGrid');
+  var form = document.getElementById('mediaBatchForm');
+  var container = document.getElementById('batchPathsContainer');
+  var btnDel = document.getElementById('btnBatchDelete');
+  var selCount = document.getElementById('selCount');
+  var ALL_IN_FOLDER = <?= json_encode($list['images'], JSON_UNESCAPED_UNICODE) ?>;
+  var USAGE = <?= json_encode($usage, JSON_UNESCAPED_UNICODE) ?>;
+  if (!grid || !form) return;
+
+  var folderSelectAll = false;
+
+  function cbs() { return Array.prototype.slice.call(grid.querySelectorAll('.media-cb')); }
+  function selected() { return cbs().filter(function (c) { return c.checked; }); }
+  function pathsToDelete() {
+    if (folderSelectAll) return ALL_IN_FOLDER.slice();
+    return selected().map(function (c) { return c.value; });
+  }
+  function updateUi() {
+    var n = folderSelectAll ? ALL_IN_FOLDER.length : selected().length;
+    selCount.textContent = n;
+    btnDel.disabled = n === 0;
+    grid.querySelectorAll('.media-item').forEach(function (el) {
+      var cb = el.querySelector('.media-cb');
+      el.classList.toggle('is-selected', cb && (cb.checked || folderSelectAll));
+    });
+  }
+  function setAll(on) {
+    folderSelectAll = false;
+    cbs().forEach(function (c) { c.checked = on; });
+    updateUi();
+  }
+
+  grid.addEventListener('change', function (e) {
+    if (e.target && e.target.classList.contains('media-cb')) {
+      folderSelectAll = false;
+      updateUi();
+    }
+  });
+  document.getElementById('btnSelectPage').addEventListener('click', function () { setAll(true); });
+  document.getElementById('btnSelectNone').addEventListener('click', function () { setAll(false); });
+  document.getElementById('btnSelectFolder').addEventListener('click', function () {
+    folderSelectAll = true;
+    cbs().forEach(function (c) { c.checked = true; });
+    updateUi();
+  });
+
+  btnDel.addEventListener('click', function () {
+    var paths = pathsToDelete();
+    if (!paths.length) return;
+    var used = 0;
+    paths.forEach(function (p) {
+      if (USAGE[p] && USAGE[p].length) used++;
+    });
+    var msg = paths.length + ' 枚の画像を削除しますか？';
+    if (folderSelectAll && ALL_IN_FOLDER.length > cbs().length) {
+      msg += '\n（このフォルダ内の全画像・全ページ対象）';
+    }
+    if (used) msg += '\n※商品で使用中の画像がある場合は参照を解除します。';
+    if (!confirm(msg)) return;
+    container.innerHTML = '';
+    paths.forEach(function (p) {
+      var inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = 'paths[]';
+      inp.value = p;
+      container.appendChild(inp);
+    });
+    form.submit();
+  });
 })();
 
 // フォルダツリー：空フォルダ削除

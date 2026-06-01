@@ -794,6 +794,24 @@ function media_safe_name($name) {
     return preg_match('/^[A-Za-z0-9_\-]{1,64}$/', (string)$name) ? (string)$name : '';
 }
 
+/** 商品画像パスが「現在フォルダ直下」の1ファイルか（一括削除の検証用） */
+function media_validate_product_image_path($path, $curDir) {
+    $path = str_replace('\\', '/', trim((string)$path));
+    if ($path === '' || strpos($path, '..') !== false || strpos($path, 'images/') !== 0) {
+        return false;
+    }
+    $cur = media_safe_dir($curDir);
+    $expected = ($cur === '') ? (UPLOAD_REL . '/') : (UPLOAD_REL . '/' . $cur . '/');
+    if (strpos($path, $expected) !== 0) {
+        return false;
+    }
+    $tail = substr($path, strlen($expected));
+    if ($tail === '' || strpos($tail, '/') !== false) {
+        return false;
+    }
+    return store_is_image_ext($tail) && is_file(SHOP_BASE . '/' . $path);
+}
+
 /** 指定サブフォルダの中身（folders, images の相対パス）を返す */
 function media_list($dir) {
     $dir = media_safe_dir($dir);
