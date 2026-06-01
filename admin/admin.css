@@ -157,9 +157,26 @@ img { display: block; max-width: 100%; }
 .mtree-del { flex: none; width: 22px; height: 22px; border: none; background: transparent; color: var(--text-dim); border-radius: 5px; cursor: pointer; font-size: 11px; opacity: 0; transition: all .15s; }
 .mtree-row:hover .mtree-del { opacity: 1; }
 .mtree-del:hover { background: #fdecec; color: var(--danger); }
-.media-count { font-size: 13px; color: var(--text-dim); }
-.media-batch-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
-.media-batch-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.media-count { font-size: 13px; font-weight: 700; color: var(--heading); white-space: nowrap; }
+.media-batch-bar { margin: 0 0 14px; }
+.media-batch-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.media-batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.media-batch-actions .adm-btn.adm-btn-sm {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+.media-batch-actions .adm-btn.adm-btn-sm i {
+  width: 14px;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  text-align: center;
+}
 .media-pick { position: absolute; top: 8px; left: 8px; z-index: 3; cursor: pointer; }
 .media-pick input { position: absolute; opacity: 0; width: 0; height: 0; }
 .media-pick-ui { display: flex; width: 22px; height: 22px; border-radius: 6px; background: rgba(255,255,255,0.92); border: 2px solid rgba(20,20,46,0.25); box-shadow: 0 2px 8px rgba(0,0,0,0.12); align-items: center; justify-content: center; transition: all .15s; }

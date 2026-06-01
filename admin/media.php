@@ -212,12 +212,14 @@ $crumbs = $cur === '' ? [] : explode('/', $cur);
       <div class="adm-empty" style="margin-top:20px;">このフォルダに画像はありません。アップロードするか、左のツリーから別のフォルダを選んでください。</div>
     <?php else: ?>
     <div class="media-batch-bar">
-      <span class="media-count"><?= $total ?> 枚<?= $pages > 1 ? '（' . $page . ' / ' . $pages . ' ページ）' : '' ?></span>
-      <div class="media-batch-actions">
-        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectPage"><i class="fa-solid fa-check-double"></i> このページを全選択</button>
-        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectFolder"><i class="fa-solid fa-folder-check"></i> フォルダ内を全選択</button>
-        <button type="button" class="adm-btn adm-btn-sm" id="btnSelectNone"><i class="fa-solid fa-xmark"></i> 選択解除</button>
-        <button type="button" class="adm-btn adm-btn-sm adm-btn-danger" id="btnBatchDelete" disabled><i class="fa-solid fa-trash"></i> 選択を削除（<span id="selCount">0</span>）</button>
+      <div class="media-batch-inner">
+        <span class="media-count"><?= $total ?> 枚<?= $pages > 1 ? '（' . $page . ' / ' . $pages . ' ページ）' : '' ?></span>
+        <div class="media-batch-actions">
+          <button type="button" class="adm-btn adm-btn-sm" id="btnSelectPage"><i class="fa-solid fa-check-double" aria-hidden="true"></i><span>このページを全選択</span></button>
+          <button type="button" class="adm-btn adm-btn-sm" id="btnSelectFolder"><i class="fa-solid fa-folder-open" aria-hidden="true"></i><span>フォルダ内を全選択</span></button>
+          <button type="button" class="adm-btn adm-btn-sm" id="btnSelectNone"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>選択解除</span></button>
+          <button type="button" class="adm-btn adm-btn-sm adm-btn-danger" id="btnBatchDelete" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i><span>選択を削除（<span id="selCount">0</span>）</span></button>
+        </div>
       </div>
     </div>
     <form method="post" id="mediaBatchForm" style="display:none;">
