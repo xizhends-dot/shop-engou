@@ -133,16 +133,103 @@ admin_head('Excel取込');
     <code>category</code> はキー（<?= htmlspecialchars(implode(' / ', array_keys($cats))) ?>）または名称。<br>
     画像は <code>image1</code>（メイン）〜 <code>image20</code>。空欄の列は既存画像を維持します。
   </p>
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="importForm">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
     <div class="adm-field">
-      <label>Excel / CSV ファイル</label>
-      <input type="file" name="datafile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.csv,text/csv" required>
+      <label>Excel / CSV ファイル（ドラッグ＆ドロップ）</label>
+      <div class="dropzone" id="importDrop">
+        <i class="fa-solid fa-file-excel"></i>
+        <p>ここに <strong>.xlsx</strong>（推奨）または .csv をドラッグ＆ドロップ</p>
+        <div class="dz-btns">
+          <button type="button" class="adm-btn" id="btnPickData"><i class="fa-solid fa-folder-open"></i> ファイルを選択</button>
+        </div>
+        <input type="file" name="datafile" id="datafileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.csv,text/csv" hidden>
+        <div class="dz-status" id="importDropStatus"></div>
+      </div>
       <small>推奨：<strong>.xlsx</strong>（UTF-8・文字化けしにくい）。従来の .csv も利用可能です。</small>
     </div>
     <div class="adm-formfoot">
-      <button type="submit" class="adm-btn adm-btn-primary"<?= $zipOk ? '' : ' disabled' ?>><i class="fa-solid fa-upload"></i> 取り込む</button>
+      <button type="submit" class="adm-btn adm-btn-primary" id="btnImportSubmit"<?= $zipOk ? '' : ' disabled' ?>><i class="fa-solid fa-upload"></i> 取り込む</button>
     </div>
   </form>
 </div>
+<script>
+(function () {
+  var dz = document.getElementById('importDrop');
+  var input = document.getElementById('datafileInput');
+  var status = document.getElementById('importDropStatus');
+  var form = document.getElementById('importForm');
+  var btnPick = document.getElementById('btnPickData');
+  if (!dz || !input) return;
+
+  function extOk(name) {
+    var n = (name || '').toLowerCase();
+    return n.slice(-5) === '.xlsx' || n.slice(-4) === '.csv';
+  }
+
+  function setStatus(msg, isErr) {
+    status.textContent = msg || '';
+    status.className = 'dz-status' + (isErr ? ' dz-status-err' : msg ? ' dz-status-ok' : '');
+  }
+
+  function applyFile(file) {
+    if (!file) return;
+    if (!extOk(file.name)) {
+      setStatus('.xlsx または .csv のみアップロードできます。', true);
+      return;
+    }
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    } catch (e) {
+      setStatus('お使いのブラウザではドロップに未対応です。「ファイルを選択」をご利用ください。', true);
+      return;
+    }
+    dz.classList.add('has-file');
+    var icon = dz.querySelector('i');
+    if (icon) {
+      icon.className = file.name.toLowerCase().slice(-4) === '.csv'
+        ? 'fa-solid fa-file-csv'
+        : 'fa-solid fa-file-excel';
+    }
+    setStatus('選択中: ' + file.name + '（' + Math.max(1, Math.round(file.size / 1024)) + ' KB）');
+  }
+
+  btnPick.addEventListener('click', function () { input.click(); });
+  input.addEventListener('change', function () {
+    if (input.files && input.files[0]) applyFile(input.files[0]);
+  });
+
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dz.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); dz.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    dz.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      if (ev === 'dragleave' && dz.contains(e.relatedTarget)) return;
+      dz.classList.remove('over');
+    });
+  });
+  dz.addEventListener('drop', function (e) {
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    if (files.length > 1) {
+      setStatus('1回に1ファイルだけ取り込めます。', true);
+      return;
+    }
+    applyFile(files[0]);
+  });
+
+  form.addEventListener('submit', function (e) {
+    if (!input.files || !input.files.length) {
+      e.preventDefault();
+      setStatus('ファイルをドロップするか、選択してください。', true);
+      return;
+    }
+    dz.classList.add('uploading');
+    setStatus('取り込み中…');
+  });
+})();
+</script>
 <?php admin_foot(); ?>

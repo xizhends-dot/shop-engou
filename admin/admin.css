@@ -124,8 +124,11 @@ img { display: block; max-width: 100%; }
 .dropzone.uploading { opacity: .7; pointer-events: none; }
 .dropzone > i { font-size: 30px; color: var(--accent-strong); }
 .dropzone p { font-size: 13px; margin: 8px 0 12px; }
-.dz-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.dropzone.has-file { border-color: var(--accent-strong); background: #f6f9e9; }
 .dz-status { margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--accent-strong); min-height: 18px; }
+.dz-status-ok { color: #3d6b1e; }
+.dz-status-err { color: #b91c1c; }
+.dz-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
 /* MEDIA LIBRARY — フォルダ */
 .media-crumb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; margin-bottom: 16px; color: var(--text-dim); }
