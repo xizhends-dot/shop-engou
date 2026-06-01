@@ -42,7 +42,7 @@ admin_head('保存チェック');
   <p class="adm-note">
     <strong>storage が mysql の場合</strong><br>
     1. サーバー（宝塔等）でデータベースとユーザーを作成<br>
-    2. <code>shop/db/schema.sql</code> を phpMyAdmin でインポート<br>
+    2. <code>shop/db/schema.sql</code> を phpMyAdmin でインポート（文字化け・1366 エラー時は <code>db/fix_charset.sql</code> も実行）<br>
     3. <code>shop/config.php</code> の <code>db</code>（host / name / user / pass）を本番の値に合わせる<br>
     4. 既存の JSON データがある場合は <a href="migrate.php">JSON → MySQL 移行</a> を実行
   </p>

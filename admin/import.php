@@ -80,10 +80,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $raw = file_get_contents($_FILES['csvfile']['tmp_name']);
 
-        // BOM 除去
+        // BOM 除去 → UTF-8 へ（Excel の Shift_JIS / CP932 対応）
         if (substr($raw, 0, 3) === "\xEF\xBB\xBF") { $raw = substr($raw, 3); }
-        // 文字コード変換（Excelの Shift_JIS 等にも対応）
-        if (function_exists('mb_check_encoding') && !mb_check_encoding($raw, 'UTF-8')) {
+        if (function_exists('mb_detect_encoding')) {
+            $enc = mb_detect_encoding($raw, ['UTF-8', 'SJIS-win', 'CP932', 'SJIS', 'EUC-JP'], true);
+            if ($enc && $enc !== 'UTF-8' && function_exists('mb_convert_encoding')) {
+                $conv = @mb_convert_encoding($raw, 'UTF-8', $enc);
+                if ($conv !== false) { $raw = $conv; }
+            }
+        }
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($raw, 'UTF-8') && function_exists('mb_convert_encoding')) {
             $conv = @mb_convert_encoding($raw, 'UTF-8', 'SJIS-win,CP932,SJIS,EUC-JP,UTF-8');
             if ($conv !== false) { $raw = $conv; }
         }

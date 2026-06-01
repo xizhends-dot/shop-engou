@@ -153,6 +153,74 @@ function store_save_error_message() {
     return 'データの保存に失敗しました（shop/data/ の書き込み権限をご確認ください）。';
 }
 
+/* ---------------- 文字コード（MySQL utf8mb4 向け） ---------------- */
+/** 文字列を UTF-8 に正規化（Shift_JIS / CP932 の CSV・Excel 取込対策） */
+function store_utf8_normalize($s) {
+    if (!is_string($s) || $s === '') {
+        return is_string($s) ? $s : '';
+    }
+    if (function_exists('mb_check_encoding') && mb_check_encoding($s, 'UTF-8')) {
+        return $s;
+    }
+    if (function_exists('mb_detect_encoding')) {
+        $enc = mb_detect_encoding($s, ['UTF-8', 'SJIS-win', 'CP932', 'SJIS', 'EUC-JP', 'ISO-2022-JP'], true);
+        if ($enc && $enc !== 'UTF-8' && function_exists('mb_convert_encoding')) {
+            $out = @mb_convert_encoding($s, 'UTF-8', $enc);
+            if ($out !== false && (!function_exists('mb_check_encoding') || mb_check_encoding($out, 'UTF-8'))) {
+                return $out;
+            }
+        }
+    }
+    if (function_exists('mb_convert_encoding')) {
+        $out = @mb_convert_encoding($s, 'UTF-8', 'SJIS-win,CP932,SJIS,EUC-JP,UTF-8');
+        if ($out !== false && (!function_exists('mb_check_encoding') || mb_check_encoding($out, 'UTF-8'))) {
+            return $out;
+        }
+    }
+    if (function_exists('iconv')) {
+        $out = @iconv('UTF-8', 'UTF-8//IGNORE', $s);
+        if ($out !== false) {
+            return $out;
+        }
+    }
+    return $s;
+}
+
+/** 保存前に商品・カテゴリ配列内の文字列を UTF-8 に揃える */
+function store_normalize_data_for_db(array $data) {
+    foreach ($data['categories'] as $slug => &$c) {
+        $c['name'] = store_utf8_normalize($c['name'] ?? (string)$slug);
+        $c['icon'] = store_utf8_normalize($c['icon'] ?? 'fa-tag');
+    }
+    unset($c);
+    foreach ($data['products'] as &$p) {
+        foreach (['id', 'category', 'icon', 'accent', 'name', 'tag', 'badge', 'desc'] as $k) {
+            if (isset($p[$k]) && is_string($p[$k])) {
+                $p[$k] = store_utf8_normalize($p[$k]);
+            }
+        }
+        if (!empty($p['images']) && is_array($p['images'])) {
+            foreach ($p['images'] as $i => $img) {
+                if (is_string($img)) {
+                    $p['images'][$i] = store_utf8_normalize($img);
+                }
+            }
+        }
+        if (!empty($p['attributes']) && is_array($p['attributes'])) {
+            foreach ($p['attributes'] as $ak => $av) {
+                $nk = is_string($ak) ? store_utf8_normalize($ak) : $ak;
+                $nv = is_string($av) ? store_utf8_normalize($av) : $av;
+                if ($nk !== $ak) {
+                    unset($p['attributes'][$ak]);
+                }
+                $p['attributes'][$nk] = $nv;
+            }
+        }
+    }
+    unset($p);
+    return $data;
+}
+
 /* ---------------- MySQL ドライバ ---------------- */
 function db_connect() {
     static $pdo = null;
@@ -162,12 +230,14 @@ function db_connect() {
     }
     $cfg = shop_config();
     $db  = $cfg['db'] ?? [];
+    $charset = $db['charset'] ?? 'utf8mb4';
     $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=%s',
-        $db['host'] ?? '127.0.0.1', $db['port'] ?? 3306, $db['name'] ?? '', $db['charset'] ?? 'utf8mb4');
+        $db['host'] ?? '127.0.0.1', $db['port'] ?? 3306, $db['name'] ?? '', $charset);
     $pdo = new PDO($dsn, $db['user'] ?? '', $db['pass'] ?? '', [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES ' . $charset . ' COLLATE utf8mb4_unicode_ci',
     ]);
     return $pdo;
 }
@@ -206,6 +276,7 @@ function store_load_mysql() {
 /** 全データをトランザクションで置き換え（呼び出し側は配列全体を渡す） */
 function store_save_mysql($data) {
     try {
+        $data = store_normalize_data_for_db($data);
         $pdo = db_connect();
         $pdo->beginTransaction();
         $pdo->exec('DELETE FROM product_images');
