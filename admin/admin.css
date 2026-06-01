@@ -362,10 +362,19 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .banner-admin-actions { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; min-width: 88px; }
 .banner-admin-actions .adm-btn { justify-content: center; }
 
-/* CATEGORY ADMIN — 並び順 */
-.cat-col-order { width: 88px; }
-.cat-order-btns { display: flex; gap: 4px; justify-content: center; }
-.cat-order-btns .adm-btn { padding: 6px 8px; min-width: 32px; }
+/* CATEGORY ADMIN — ドラッグ並び替え */
+.cat-col-order { width: 52px; text-align: center; vertical-align: middle; }
+.cat-drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px;
+  color: var(--text-dim); cursor: grab; user-select: none;
+  transition: background .15s, color .15s;
+}
+.cat-drag-handle:hover { background: #eef1f5; color: var(--heading); }
+.cat-drag-handle:active { cursor: grabbing; }
+.cat-row.is-dragging { opacity: 0.45; background: #f8fafc; }
+.cat-row.cat-drag-over { box-shadow: inset 0 3px 0 var(--accent-strong); }
+#catList .cat-row { transition: box-shadow .12s; }
 
 @media (max-width: 640px) {
   .adm-grid { grid-template-columns: 1fr; gap: 0; }

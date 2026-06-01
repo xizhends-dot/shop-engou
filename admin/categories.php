@@ -110,10 +110,9 @@ $delTitle = htmlspecialchars(__('cat.cannot_delete'), ENT_QUOTES);
       <tr class="cat-row" data-slug="<?= htmlspecialchars($slug, ENT_QUOTES) ?>">
         <td class="cat-col-order">
           <input type="hidden" name="order[]" value="<?= htmlspecialchars($slug) ?>">
-          <div class="cat-order-btns">
-            <button type="button" class="adm-btn adm-btn-sm js-cat-up" title="<?= htmlspecialchars(__('btn.up')) ?>"><i class="fa-solid fa-arrow-up"></i></button>
-            <button type="button" class="adm-btn adm-btn-sm js-cat-down" title="<?= htmlspecialchars(__('btn.down')) ?>"><i class="fa-solid fa-arrow-down"></i></button>
-          </div>
+          <span class="cat-drag-handle" draggable="true" title="<?= htmlspecialchars(__('cat.drag_hint')) ?>" aria-label="<?= htmlspecialchars(__('cat.drag_hint')) ?>">
+            <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
+          </span>
         </td>
         <td><code><?= htmlspecialchars($slug) ?></code></td>
         <td><input type="text" name="name[<?= htmlspecialchars($slug) ?>]" value="<?= htmlspecialchars($c['name']) ?>" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:inherit;"></td>
@@ -167,20 +166,58 @@ $delTitle = htmlspecialchars(__('cat.cannot_delete'), ENT_QUOTES);
 <script>
 (function () {
   var list = document.getElementById('catList');
+  var dragRow = null;
+
   if (list) {
-    list.querySelectorAll('.js-cat-up').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var row = b.closest('tr');
-        if (row && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+    list.querySelectorAll('.cat-drag-handle').forEach(function (handle) {
+      handle.addEventListener('dragstart', function (e) {
+        dragRow = handle.closest('tr');
+        if (!dragRow) return;
+        dragRow.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragRow.dataset.slug || '');
+        if (e.dataTransfer.setDragImage) {
+          var ghost = dragRow.cloneNode(true);
+          ghost.style.opacity = '0.85';
+          ghost.style.background = '#f4f6f9';
+          document.body.appendChild(ghost);
+          e.dataTransfer.setDragImage(ghost, 20, 20);
+          setTimeout(function () { ghost.remove(); }, 0);
+        }
+      });
+      handle.addEventListener('dragend', function () {
+        if (dragRow) dragRow.classList.remove('is-dragging');
+        dragRow = null;
+        list.querySelectorAll('.cat-row').forEach(function (r) { r.classList.remove('cat-drag-over'); });
       });
     });
-    list.querySelectorAll('.js-cat-down').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var row = b.closest('tr');
-        if (row && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+
+    list.querySelectorAll('.cat-row').forEach(function (row) {
+      row.addEventListener('dragover', function (e) {
+        if (!dragRow || dragRow === row) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        list.querySelectorAll('.cat-row').forEach(function (r) { r.classList.remove('cat-drag-over'); });
+        row.classList.add('cat-drag-over');
       });
+      row.addEventListener('dragleave', function (e) {
+        if (!row.contains(e.relatedTarget)) row.classList.remove('cat-drag-over');
+      });
+      row.addEventListener('drop', function (e) {
+        e.preventDefault();
+        row.classList.remove('cat-drag-over');
+        if (!dragRow || dragRow === row) return;
+        var rect = row.getBoundingClientRect();
+        var before = e.clientY < rect.top + rect.height / 2;
+        list.insertBefore(dragRow, before ? row : row.nextElementSibling);
+      });
+    });
+
+    list.addEventListener('dragover', function (e) {
+      if (dragRow) e.preventDefault();
     });
   }
+
   document.querySelectorAll('.js-cat-del').forEach(function (b) {
     b.addEventListener('click', function () {
       var msg = <?= json_encode(__('cat.delete_confirm', ['name' => '']), JSON_UNESCAPED_UNICODE) ?>.replace('{name}', b.dataset.name);
