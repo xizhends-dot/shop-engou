@@ -553,6 +553,52 @@ function store_upload_err_msg($code) {
    戻り値: 成功なら相対パス（images/products/xxx.jpg）, 失敗なら null
    $errOut に失敗理由を返す（任意）
    ================================================================ */
+
+/** アップロード元のファイル名を安全な保存名に（日本語可・パス区切りは basename のみ） */
+function store_sanitize_upload_filename($originalName, $ext) {
+    $originalName = str_replace('\\', '/', (string)$originalName);
+    if (strpos($originalName, '..') !== false) {
+        $originalName = basename($originalName);
+    }
+    $base = pathinfo(basename($originalName), PATHINFO_FILENAME);
+    if (function_exists('store_utf8_normalize')) {
+        $base = store_utf8_normalize($base);
+    }
+    $base = preg_replace('/[^\p{L}\p{N}\._\-]+/u', '_', $base);
+    $base = preg_replace('/_+/u', '_', $base);
+    $base = trim($base, "._- \t");
+    if ($base === '') {
+        $base = 'image';
+    }
+    if (function_exists('mb_strlen') && mb_strlen($base) > 100) {
+        $base = mb_substr($base, 0, 100);
+    } elseif (strlen($base) > 100) {
+        $base = substr($base, 0, 100);
+    }
+    return $base . '.' . strtolower((string)$ext);
+}
+
+/** 同名ファイルがある場合は -2, -3 … を付与 */
+function store_unique_filename_in_dir($absDir, $filename) {
+    $filename = basename(str_replace('\\', '/', $filename));
+    if ($filename === '' || $filename === '.' || $filename === '..') {
+        $filename = 'image.jpg';
+    }
+    if (!is_file($absDir . '/' . $filename)) {
+        return $filename;
+    }
+    $pi   = pathinfo($filename);
+    $stem = $pi['filename'] ?? 'image';
+    $ext  = isset($pi['extension']) && $pi['extension'] !== '' ? '.' . $pi['extension'] : '';
+    for ($i = 2; $i < 1000; $i++) {
+        $try = $stem . '-' . $i . $ext;
+        if (!is_file($absDir . '/' . $try)) {
+            return $try;
+        }
+    }
+    return $stem . '_' . bin2hex(random_bytes(3)) . $ext;
+}
+
 function store_handle_upload($file, $absDir = UPLOAD_DIR, $relDir = UPLOAD_REL, &$errOut = null) {
     $errOut = null;
     if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
@@ -610,7 +656,8 @@ function store_handle_upload($file, $absDir = UPLOAD_DIR, $relDir = UPLOAD_REL, 
         return null;
     }
 
-    $name = date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    $name = store_sanitize_upload_filename($file['name'] ?? 'image', $ext);
+    $name = store_unique_filename_in_dir($absDir, $name);
     $dest = $absDir . '/' . $name;
     if (!move_uploaded_file($file['tmp_name'], $dest)) {
         $errOut = 'ファイルの保存に失敗しました（権限またはディスク容量を確認）';
