@@ -3,7 +3,7 @@ $config   = require __DIR__ . '/config.php';
 $data     = require __DIR__ . '/products.php';
 $cats     = $data['categories'];
 $products = $data['products'];
-$banners  = banners_load();
+$banners  = banners_for_front();
 
 $page_title = $config['company_name_ja'] . ' SHOP — オンラインショップ';
 $active     = 'home';

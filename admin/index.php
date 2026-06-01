@@ -16,7 +16,8 @@ foreach ($featuredIds as $fid) {
         $featuredCount++;
     }
 }
-$bannerTotal    = count(banners_load());
+$bannerTotal    = count(banners_for_front());
+$bannerRegistered = count(banners_load());
 $noImageCount   = 0;
 foreach ($products as $p) {
     if (empty($p['images'])) {
@@ -69,8 +70,8 @@ admin_head(__('page.console'));
   </a>
   <a href="banners.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-panorama"></i></span>
-    <span class="adm-stat-num"><?= $bannerTotal ?></span>
-    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_banners')) ?></span>
+    <span class="adm-stat-num"><?= $bannerTotal ?><small>/<?= defined('BANNER_MAX') ? BANNER_MAX : 5 ?></small></span>
+    <span class="adm-stat-label"><?= htmlspecialchars(__('dash.stats_banners')) ?><?php if ($bannerRegistered > $bannerTotal): ?> <span class="adm-stat-sub">(<?= htmlspecialchars(__('dash.stats_banners_draft', ['n' => $bannerRegistered - $bannerTotal])) ?>)</span><?php endif; ?></span>
   </a>
   <a href="media.php" class="adm-stat-card">
     <span class="adm-stat-icon"><i class="fa-solid fa-images"></i></span>

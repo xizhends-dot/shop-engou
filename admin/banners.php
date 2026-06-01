@@ -23,10 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($act === 'upload') {
         $banners = banners_load();
-        $ok = 0; $ng = 0;
+        $max     = defined('BANNER_MAX') ? BANNER_MAX : 5;
+        $ok = 0; $ng = 0; $skipMax = 0;
         if (!empty($_FILES['files']['name'][0])) {
             $n = count($_FILES['files']['name']);
             for ($i = 0; $i < $n; $i++) {
+                if (count($banners) >= $max) {
+                    $skipMax++;
+                    continue;
+                }
                 if ($_FILES['files']['error'][$i] === UPLOAD_ERR_OK) {
                     $one = [
                         'name'     => $_FILES['files']['name'][$i],
@@ -35,12 +40,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'size'     => $_FILES['files']['size'][$i],
                     ];
                     $rel = store_handle_upload($one, BANNER_DIR, BANNER_REL);
-                    if ($rel) { $banners[] = ['image' => $rel, 'link' => '']; $ok++; } else { $ng++; }
+                    if ($rel) {
+                        $banners[] = ['image' => $rel, 'link' => '', 'title' => '', 'subtitle' => ''];
+                        $ok++;
+                    } else {
+                        $ng++;
+                    }
                 }
             }
         }
         banners_save($banners);
-        set_flash(__('flash.banner_added', ['ok' => $ok, 'fail' => $ng ? __('flash.banner_added_fail', ['ng' => $ng]) : '']), $ng ? 'err' : 'ok');
+        $msg = __('flash.banner_added', ['ok' => $ok, 'fail' => $ng ? __('flash.banner_added_fail', ['ng' => $ng]) : '']);
+        if ($skipMax > 0) {
+            $msg .= ' ' . __('flash.banner_max_skip', ['n' => $skipMax, 'max' => $max]);
+        }
+        set_flash($msg, ($ng || $skipMax) ? 'err' : 'ok');
         header('Location: banners.php'); exit;
     }
 
@@ -134,12 +148,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $banners  = banners_load();
 $settings = banner_settings_load();
+$bannerMax = defined('BANNER_MAX') ? BANNER_MAX : 5;
+$bannerVisible = count(array_filter($banners, 'banner_has_content'));
+$bannerSlotsLeft = max(0, $bannerMax - count($banners));
 require_once __DIR__ . '/_layout.php';
 $token = csrf_token();
 admin_head(__('page.banners'));
 ?>
 <div class="adm-head">
-  <h2><?= htmlspecialchars(__('page.banners')) ?> <span class="adm-count"><?= count($banners) ?> <?= htmlspecialchars(__('banner.count')) ?></span></h2>
+  <h2><?= htmlspecialchars(__('page.banners')) ?> <span class="adm-count"><?= count($banners) ?> / <?= $bannerMax ?> <?= htmlspecialchars(__('banner.count')) ?> · <?= htmlspecialchars(__('banner.visible_count', ['n' => $bannerVisible])) ?></span></h2>
   <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_console')) ?></a>
 </div>
 
@@ -189,29 +206,39 @@ admin_head(__('page.banners'));
 
 <div class="adm-form" style="max-width:760px;">
   <h3 style="font-size:15px;margin-bottom:12px;color:var(--heading);"><?= htmlspecialchars(__('banner.upload_title')) ?></h3>
-  <p class="adm-note"><?= htmlspecialchars(__('banner.upload_note')) ?></p>
+  <p class="adm-note"><?= htmlspecialchars(__('banner.upload_note', ['max' => $bannerMax])) ?></p>
+  <?php if ($bannerSlotsLeft <= 0): ?>
+  <p class="adm-note" style="color:var(--danger);font-weight:600;"><?= htmlspecialchars(__('banner.max_full', ['max' => $bannerMax])) ?></p>
+  <?php else: ?>
   <form method="post" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
     <input type="hidden" name="action" value="upload">
     <div class="adm-field" style="margin-bottom:12px;">
       <input type="file" name="files[]" accept="image/*" multiple required>
-      <small><?= htmlspecialchars(__('banner.upload_hint')) ?></small>
+      <small><?= htmlspecialchars(__('banner.upload_hint', ['left' => $bannerSlotsLeft, 'max' => $bannerMax])) ?></small>
     </div>
     <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-upload"></i> <?= htmlspecialchars(__('btn.upload')) ?></button>
   </form>
+  <?php endif; ?>
 </div>
 
 <?php if (empty($banners)): ?>
   <div class="adm-empty" style="margin-top:20px;"><?= htmlspecialchars(__('banner.empty')) ?></div>
 <?php else: ?>
-<form method="post" style="margin-top:20px;">
+<p class="adm-note" style="margin-top:20px;"><?= htmlspecialchars(__('banner.list_note')) ?></p>
+<form method="post" style="margin-top:12px;">
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
   <input type="hidden" name="action" value="save">
   <div class="banner-admin-list" id="bannerList">
-    <?php foreach ($banners as $b): ?>
-    <div class="banner-admin-item" data-img="<?= htmlspecialchars($b['image']) ?>">
+    <?php foreach ($banners as $b):
+      $isDraft = !banner_has_content($b);
+    ?>
+    <div class="banner-admin-item<?= $isDraft ? ' banner-admin-item--draft' : '' ?>" data-img="<?= htmlspecialchars($b['image']) ?>">
       <input type="hidden" name="order[]" value="<?= htmlspecialchars($b['image']) ?>">
       <img src="../<?= htmlspecialchars($b['image']) ?>" alt="">
+      <?php if ($isDraft): ?>
+      <span class="banner-draft-badge"><?= htmlspecialchars(__('banner.draft_badge')) ?></span>
+      <?php endif; ?>
       <div class="banner-admin-meta">
         <label><?= htmlspecialchars(__('banner.per_title')) ?></label>
         <input type="text" name="title[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['title']) ?>" placeholder="例: 新生活応援フェア開催中！">
