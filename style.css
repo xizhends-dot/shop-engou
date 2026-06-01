@@ -75,14 +75,21 @@ main { padding-top: 72px; }
 .banner-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1s ease; display: flex; align-items: center; justify-content: center; text-align: center; padding: 90px 24px; }
 .banner-slide.active { opacity: 1; }
 .banner-slide:not(.active) { pointer-events: none; }
-.banner-slide::before { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg, rgba(255,255,255,0.92), rgba(255,255,255,0.6) 55%, rgba(255,255,255,0.35)); }
-.banner-scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(120deg, rgba(255,255,255,0.92), rgba(255,255,255,0.6) 55%, rgba(255,255,255,0.35)); }
-.banner-has-slides .banner-inner { text-shadow: 0 1px 2px rgba(255,255,255,0.6); }
+.banner-slide::before { content: ''; position: absolute; inset: 0; z-index: 0; background: rgba(0, 0, 0, 0.3); pointer-events: none; }
+.banner-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(0, 0, 0, 0.3); pointer-events: none; }
 .banner-dots { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; gap: 10px; }
-.banner-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent-strong); background: transparent; cursor: pointer; padding: 0; transition: all .25s; }
-.banner-dot.active { background: var(--accent-strong); transform: scale(1.25); }
+.banner-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.25); cursor: pointer; padding: 0; transition: all .25s; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
+.banner-dot.active { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
 
-.banner-inner { position: relative; z-index: 2; max-width: 760px; }
+.banner-inner {
+  position: relative; z-index: 2; width: 100%; max-width: 760px;
+  padding: 36px 40px; border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
 .banner .eyebrow { font-size: 13px; letter-spacing: 6px; color: var(--accent-strong); font-weight: 700; margin-bottom: 18px; }
 .banner h1 { font-size: 44px; font-weight: 800; color: var(--heading); letter-spacing: 2px; line-height: 1.35; }
 .banner h1 .accent { background: linear-gradient(90deg, #8fa826, #5f7a12); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
@@ -276,7 +283,8 @@ main { padding-top: 72px; }
   .nav-links { display: none; position: fixed; top: 72px; left: 0; right: 0; background: var(--nav-bg); backdrop-filter: blur(12px); flex-direction: column; padding: 20px; gap: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); align-items: flex-start; }
   .nav-links.open { display: flex; }
   .hamburger { display: flex; }
-  .banner { min-height: 56vh; padding: 72px 24px; }
+  .banner { min-height: 56vh; padding: 72px 16px; }
+  .banner-inner { padding: 28px 22px; border-radius: 16px; }
   .banner h1 { font-size: 30px; }
   .section-title { font-size: 24px; }
   .product-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
