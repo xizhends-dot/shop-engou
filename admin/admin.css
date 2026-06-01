@@ -399,9 +399,18 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .feat-cat { font-size: 11px; color: var(--text-dim); }
 
 /* BANNER ADMIN */
-.banner-admin-list { display: flex; flex-direction: column; gap: 12px; }
+.banner-admin-wrap { max-width: 900px; width: 100%; }
+.banner-admin-wrap .adm-form--banner { max-width: none; width: 100%; box-sizing: border-box; }
+.banner-panel-title { font-size: 15px; margin-bottom: 6px; color: var(--heading); }
+.banner-admin-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.banner-admin-list--slots,
+#bannerSaveForm { width: 100%; }
 .adm-stat-sub { display: block; font-size: 11px; font-weight: 600; color: var(--text-dim); margin-top: 2px; }
-.banner-admin-item { position: relative; display: flex; gap: 14px; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: var(--shadow); }
+.banner-admin-item {
+  position: relative; display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap;
+  width: 100%; box-sizing: border-box;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: var(--shadow);
+}
 .banner-admin-item--draft { border-style: dashed; border-color: #c8cdd6; background: #f8f9fb; opacity: 0.92; }
 .banner-draft-badge { position: absolute; top: 10px; left: 10px; z-index: 2; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; background: #6b7280; color: #fff; letter-spacing: 0.02em; }
 .banner-admin-item img { width: 160px; height: 70px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); flex: none; }

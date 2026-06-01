@@ -160,8 +160,9 @@ admin_head(__('page.banners'));
   <a href="index.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_console')) ?></a>
 </div>
 
-<div class="adm-form" style="max-width:760px;margin-bottom:22px;">
-  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);"><?= htmlspecialchars(__('banner.settings_title')) ?></h3>
+<div class="banner-admin-wrap">
+<div class="adm-form adm-form--banner">
+  <h3 class="banner-panel-title"><?= htmlspecialchars(__('banner.settings_title')) ?></h3>
   <p class="adm-note"><?= __('banner.settings_note') ?></p>
   <form method="post">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
@@ -204,8 +205,8 @@ admin_head(__('page.banners'));
   </form>
 </div>
 
-<div class="adm-form" style="max-width:900px;margin-top:8px;">
-  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);"><?= htmlspecialchars(__('banner.slots_title', ['max' => $bannerMax])) ?></h3>
+<div class="adm-form adm-form--banner" style="margin-top:18px;">
+  <h3 class="banner-panel-title"><?= htmlspecialchars(__('banner.slots_title', ['max' => $bannerMax])) ?></h3>
   <p class="adm-note" style="margin-bottom:14px;"><?= htmlspecialchars(__('banner.upload_note', ['max' => $bannerMax])) ?> <?= htmlspecialchars(__('banner.list_note')) ?></p>
 
 <?php if (!empty($banners)): ?>
@@ -246,7 +247,7 @@ admin_head(__('page.banners'));
 </form>
 <?php endif; ?>
 
-  <div class="banner-admin-list" style="margin-top:<?= empty($banners) ? '0' : '14px' ?>;">
+  <div class="banner-admin-list banner-admin-list--slots" style="margin-top:<?= empty($banners) ? '0' : '14px' ?>;">
     <?php for ($slot = count($banners) + 1; $slot <= $bannerMax; $slot++): ?>
     <div class="banner-admin-slot-empty">
       <div class="banner-slot-head"><span class="banner-slot-num"><?= htmlspecialchars(__('banner.slot_add_title', ['n' => $slot])) ?></span></div>
@@ -260,6 +261,7 @@ admin_head(__('page.banners'));
     </div>
     <?php endfor; ?>
   </div>
+</div>
 </div>
 
 <!-- 削除・差し替え用（メインフォームの外に置く — ネスト form 禁止） -->
