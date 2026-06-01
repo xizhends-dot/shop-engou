@@ -97,7 +97,7 @@ admin_head(__('page.import'));
 </div>
 
 <?php if (!$zipOk): ?>
-<div class="adm-flash adm-flash-err">PHP の <strong>zip</strong> 拡張が無効です。Excel（.xlsx）を使うには宝塔 → PHP → 安装扩展 → zip を有効にしてください。</div>
+<div class="adm-flash adm-flash-err"><?= __('import.zip_warn') ?></div>
 <?php endif; ?>
 
 <?php if ($report && !empty($report['err'])): ?>

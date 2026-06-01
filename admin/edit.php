@@ -48,13 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // バリデーション
     if (!store_valid_id($in['id'])) {
-        $errors[] = '商品番号は半角英数・ハイフン・アンダースコア（1〜64文字）で入力してください。';
+        $errors[] = __('edit.err_id');
     } elseif (!$isEdit && store_find_index($data['products'], $in['id']) >= 0) {
-        $errors[] = 'その商品番号は既に使われています。別の番号を指定してください。';
+        $errors[] = __('edit.err_id_dup');
     }
-    if (!isset($cats[$in['category']])) { $errors[] = 'カテゴリを選択してください。'; }
-    if ($in['name'] === '') { $errors[] = '商品名を入力してください。'; }
-    if ($in['price'] === '' || !is_numeric($in['price']) || (int)$in['price'] < 0) { $errors[] = '価格は0以上の数値で入力してください。'; }
+    if (!isset($cats[$in['category']])) { $errors[] = __('edit.err_cat'); }
+    if ($in['name'] === '') { $errors[] = __('edit.err_name'); }
+    if ($in['price'] === '' || !is_numeric($in['price']) || (int)$in['price'] < 0) { $errors[] = __('edit.err_price'); }
 
     if (empty($errors)) {
         // 画像: フロントで並べ替え・削除済みの順序つきリスト（images[]）
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $upErr = null;
                     $rel = store_handle_upload($one, UPLOAD_DIR, UPLOAD_REL, $upErr);
                     if ($rel) { $kept[] = $rel; }
-                    else { $errors[] = $upErr ?: '画像のアップロードに失敗しました（対応形式: JPG/PNG/WebP/GIF、8MBまで）。'; }
+                    else { $errors[] = $upErr ?: __('edit.err_upload'); }
                 }
             }
         }
@@ -163,9 +163,9 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
 
   <div class="adm-grid">
     <div class="adm-field">
-      <label>商品番号（ID）<span class="req">*</span></label>
+      <label><?= htmlspecialchars(__('edit.label_id')) ?><span class="req">*</span></label>
       <input type="text" name="id" value="<?= htmlspecialchars($current['id']) ?>" <?= $isEdit ? 'readonly' : 'placeholder="例: ENG-001"' ?> required>
-      <small><?= $isEdit ? '商品番号は変更できません。' : '半角英数・ハイフン可。URLと画面に表示されます。' ?></small>
+      <small><?= htmlspecialchars($isEdit ? __('edit.hint_id_ro') : __('edit.hint_id_new')) ?></small>
     </div>
     <div class="adm-field">
       <label>カテゴリ <span class="req">*</span></label>
