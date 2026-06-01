@@ -82,16 +82,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // BOM 除去 → UTF-8 へ（Excel の Shift_JIS / CP932 対応）
         if (substr($raw, 0, 3) === "\xEF\xBB\xBF") { $raw = substr($raw, 3); }
-        if (function_exists('mb_detect_encoding')) {
-            $enc = mb_detect_encoding($raw, ['UTF-8', 'SJIS-win', 'CP932', 'SJIS', 'EUC-JP'], true);
-            if ($enc && $enc !== 'UTF-8' && function_exists('mb_convert_encoding')) {
-                $conv = @mb_convert_encoding($raw, 'UTF-8', $enc);
+        if (!store_utf8_conversion_ok($raw)) {
+            if (function_exists('iconv')) {
+                foreach (['EUC-JP', 'CP932', 'SJIS', 'SJIS-win'] as $from) {
+                    $conv = @iconv($from, 'UTF-8//IGNORE', $raw);
+                    if ($conv !== false && store_utf8_conversion_ok($conv)) {
+                        $raw = $conv;
+                        break;
+                    }
+                }
+            }
+            if (!store_utf8_conversion_ok($raw) && function_exists('mb_convert_encoding')) {
+                $conv = @mb_convert_encoding($raw, 'UTF-8', 'EUC-JP,CP932,SJIS-win,SJIS,UTF-8');
                 if ($conv !== false) { $raw = $conv; }
             }
-        }
-        if (function_exists('mb_check_encoding') && !mb_check_encoding($raw, 'UTF-8') && function_exists('mb_convert_encoding')) {
-            $conv = @mb_convert_encoding($raw, 'UTF-8', 'SJIS-win,CP932,SJIS,EUC-JP,UTF-8');
-            if ($conv !== false) { $raw = $conv; }
         }
 
         $fh = fopen('php://temp', 'r+');
@@ -174,14 +178,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $record = [
                     'id'       => $id,
                     'category' => $catKey,
-                    'icon'     => $get($row, 'icon') ?: 'fa-box',
-                    'accent'   => $get($row, 'accent') ?: '#DEF13F',
+                    'icon'     => store_utf8_normalize($get($row, 'icon') ?: 'fa-box'),
+                    'accent'   => store_utf8_normalize($get($row, 'accent') ?: '#DEF13F'),
                     'images'   => $images,
-                    'name'     => $name,
-                    'tag'      => $get($row, 'tag'),
+                    'name'     => store_utf8_normalize($name),
+                    'tag'      => store_utf8_normalize($get($row, 'tag')),
                     'price'    => (int)$price,
-                    'badge'    => $get($row, 'badge'),
-                    'desc'     => $get($row, 'desc'),
+                    'badge'    => store_utf8_normalize($get($row, 'badge')),
+                    'desc'     => store_utf8_normalize($get($row, 'desc')),
                     'rating'   => $rating,
                     'reviews'  => $reviews,
                 ];

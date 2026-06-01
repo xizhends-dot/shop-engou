@@ -30,13 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $in = [
         'id'       => trim($_POST['id'] ?? ''),
         'category' => trim($_POST['category'] ?? ''),
-        'name'     => trim($_POST['name'] ?? ''),
-        'tag'      => trim($_POST['tag'] ?? ''),
+        'name'     => store_utf8_normalize(trim($_POST['name'] ?? '')),
+        'tag'      => store_utf8_normalize(trim($_POST['tag'] ?? '')),
         'price'    => trim($_POST['price'] ?? ''),
-        'badge'    => trim($_POST['badge'] ?? ''),
-        'icon'     => trim($_POST['icon'] ?? '') ?: 'fa-box',
+        'badge'    => store_utf8_normalize(trim($_POST['badge'] ?? '')),
+        'icon'     => store_utf8_normalize(trim($_POST['icon'] ?? '') ?: 'fa-box'),
         'accent'   => trim($_POST['accent'] ?? '') ?: '#DEF13F',
-        'desc'     => trim($_POST['desc'] ?? ''),
+        'desc'     => store_utf8_normalize(trim($_POST['desc'] ?? '')),
         'rating'   => trim($_POST['rating'] ?? ''),
         'reviews'  => trim($_POST['reviews'] ?? ''),
     ];

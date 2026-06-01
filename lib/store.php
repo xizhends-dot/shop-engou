@@ -154,26 +154,69 @@ function store_save_error_message() {
 }
 
 /* ---------------- 文字コード（MySQL utf8mb4 向け） ---------------- */
-/** 文字列を UTF-8 に正規化（Shift_JIS / CP932 の CSV・Excel 取込対策） */
+/** PCRE 上の厳密な UTF-8 か（mb_check_encoding だけでは EUC-JP を誤判定しやすい） */
+function store_utf8_is_strict($s) {
+    if ($s === '' || !preg_match('/[\x80-\xff]/', $s)) {
+        return true;
+    }
+    return @preg_match('//u', $s) === 1;
+}
+
+/**
+ * EUC-JP / Shift_JIS のバイト列が「UTF-8 として通った」疑いがあるか。
+ * 例: \xA5\xB7（EUC の「シ」）は mb_check_encoding で UTF-8 と誤判定され MySQL 1366 になる。
+ */
+function store_utf8_suspect_legacy_encoding($s) {
+    if (!preg_match('/[\x80-\xff]/', $s)) {
+        return false;
+    }
+    if (preg_match('/[\xE3-\xE9][\x80-\xBF]{2}/', $s)) {
+        return false;
+    }
+    if (preg_match('/[\xA1-\xF5][\xA1-\xFE]/', $s)) {
+        return true;
+    }
+    if (preg_match('/[\x81-\x9F][\x40-\xFC]|[\xE0-\xEF][\x40-\xFC]/', $s)) {
+        return true;
+    }
+    return false;
+}
+
+/** 変換結果が妥当な UTF-8 日本語か */
+function store_utf8_conversion_ok($s) {
+    return store_utf8_is_strict($s) && !store_utf8_suspect_legacy_encoding($s);
+}
+
+/** 文字列を UTF-8 に正規化（EUC-JP / Shift_JIS / CP932 の CSV・Excel 取込対策） */
 function store_utf8_normalize($s) {
     if (!is_string($s) || $s === '') {
         return is_string($s) ? $s : '';
     }
-    if (function_exists('mb_check_encoding') && mb_check_encoding($s, 'UTF-8')) {
+    if (!preg_match('/[^\x00-\x7F]/', $s)) {
         return $s;
     }
-    if (function_exists('mb_detect_encoding')) {
-        $enc = mb_detect_encoding($s, ['UTF-8', 'SJIS-win', 'CP932', 'SJIS', 'EUC-JP', 'ISO-2022-JP'], true);
-        if ($enc && $enc !== 'UTF-8' && function_exists('mb_convert_encoding')) {
-            $out = @mb_convert_encoding($s, 'UTF-8', $enc);
-            if ($out !== false && (!function_exists('mb_check_encoding') || mb_check_encoding($out, 'UTF-8'))) {
+    if (store_utf8_conversion_ok($s)) {
+        return $s;
+    }
+
+    $tryFrom = ['EUC-JP', 'CP932', 'SJIS', 'SJIS-win', 'ISO-2022-JP'];
+    if (function_exists('iconv')) {
+        foreach ($tryFrom as $from) {
+            $out = @iconv($from, 'UTF-8//IGNORE', $s);
+            if ($out !== false && $out !== '' && store_utf8_conversion_ok($out)) {
                 return $out;
             }
         }
     }
     if (function_exists('mb_convert_encoding')) {
-        $out = @mb_convert_encoding($s, 'UTF-8', 'SJIS-win,CP932,SJIS,EUC-JP,UTF-8');
-        if ($out !== false && (!function_exists('mb_check_encoding') || mb_check_encoding($out, 'UTF-8'))) {
+        foreach ($tryFrom as $from) {
+            $out = @mb_convert_encoding($s, 'UTF-8', $from);
+            if ($out !== false && store_utf8_conversion_ok($out)) {
+                return $out;
+            }
+        }
+        $out = @mb_convert_encoding($s, 'UTF-8', 'EUC-JP,CP932,SJIS-win,SJIS,UTF-8');
+        if ($out !== false && store_utf8_conversion_ok($out)) {
             return $out;
         }
     }
@@ -384,6 +427,29 @@ function store_health_report() {
                 : (is_writable($dataDir) ? '未作成（初回保存時に生成）' : 'data/ に書き込み不可'),
         ];
     }
+
+    $hasIconv = function_exists('iconv');
+    $hasMb    = function_exists('mb_convert_encoding');
+    $items[] = [
+        'label'  => 'iconv 拡張',
+        'ok'     => $hasIconv,
+        'detail' => $hasIconv ? '利用可能（EUC-JP/Shift_JIS 変換）' : '未インストール — 宝塔 PHP で有効化してください',
+    ];
+    $items[] = [
+        'label'  => 'mbstring 拡張',
+        'ok'     => $hasMb,
+        'detail' => $hasMb ? '利用可能' : '未インストール（iconv があれば動作可能）',
+    ];
+    $eucSample = "\xA5\xB7\xA5\xC3\xA5\xEF"; // EUC-JP「シャウ」相当のバイト列（1366 の典型）
+    $norm      = store_utf8_normalize($eucSample);
+    $convOk    = ($norm !== $eucSample && store_utf8_conversion_ok($norm));
+    $items[] = [
+        'label'  => '日本語エンコード変換テスト',
+        'ok'     => $convOk,
+        'detail' => $convOk
+            ? 'EUC-JP → UTF-8 変換 OK（例: ' . $norm . '）'
+            : '変換できていません。iconv / mbstring を有効化し、最新の lib/store.php をデプロイしてください',
+    ];
 
     return $items;
 }
