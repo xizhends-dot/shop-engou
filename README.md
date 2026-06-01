@@ -185,10 +185,23 @@ php -S 127.0.0.1:8765
 
 > 本地预览时，如想让「本社サイト」按钮指向本地主站，可临时把 `config.php` 的 `main_site_url` 改为 `../index.php`；上线前改回 `https://engou.jp`。
 
+## 服务器日常更新（Git）
+
+代码在 GitHub：`https://github.com/xizhends-dot/shop-engou`（分支 `main`）。
+
+```bash
+cd /www/wwwroot/shop.engou.jp
+git pull origin main
+chown -R www:www data images/products images/banners   # 按需
+chmod -R 775 data images/products images/banners       # 按需
+```
+
+`config.php` 与代码一同由仓库管理，拉取即可，**无需**在服务器上单独备份或 stash `config.php`。
+
 ## 部署到新服务器
 
-1. 将 `shop/` 目录内容上传到新服务器的站点根目录（让 `shop.engou.jp` 文档根指向这些文件）。
-2. 修改 `config.php`：`main_site_url`、`shop_site_url`，以及 **`admin_password`（务必改）**。
+1. 克隆仓库到站点根（见 `.claude/CLAUDE.md` 或执行 `git clone https://github.com/xizhends-dot/shop-engou.git .`）。
+2. 确认 `config.php` 中 `main_site_url`、`shop_site_url`、`storage`、`db` 等符合本环境（一般在 Git 中已配好）。
 3. **目录权限**：确保 PHP 进程对以下目录有写权限：
    - `data/`（保存 products.json）
    - `images/products/`（保存上传的图片）
