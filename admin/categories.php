@@ -11,14 +11,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = store_load();
 
     if ($act === 'save') {
+        $order = $_POST['order'] ?? [];
         $names = $_POST['name'] ?? [];
         $icons = $_POST['icon'] ?? [];
-        foreach ($data['categories'] as $slug => $c) {
+        $cats  = $data['categories'];
+        $newCats = categories_reorder($cats, is_array($order) ? $order : []);
+        foreach ($newCats as $slug => $c) {
             if (isset($names[$slug])) {
-                $data['categories'][$slug]['name'] = trim((string)$names[$slug]) ?: $slug;
-                $data['categories'][$slug]['icon'] = trim((string)($icons[$slug] ?? '')) ?: 'fa-tag';
+                $newCats[$slug]['name'] = trim((string)$names[$slug]) ?: $slug;
+                $newCats[$slug]['icon'] = trim((string)($icons[$slug] ?? '')) ?: 'fa-tag';
             }
         }
+        $data['categories'] = $newCats;
         if (store_save($data)) {
             set_flash(__('flash.category_saved'));
         } else {
@@ -39,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash(__('flash.category_name_required'), 'err');
         } else {
             $data['categories'][$slug] = ['name' => $name, 'icon' => $icon];
+            categories_apply_sort_indices($data['categories']);
             if (store_save($data)) {
                 set_flash(__('flash.category_added', ['name' => $name]));
             } else {
@@ -57,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             set_flash(__('flash.category_has_products'), 'err');
         } else {
             unset($data['categories'][$slug]);
+            categories_apply_sort_indices($data['categories']);
             if (store_save($data)) {
                 set_flash(__('flash.category_deleted'));
             } else {
@@ -80,18 +86,35 @@ $delTitle = htmlspecialchars(__('cat.cannot_delete'), ENT_QUOTES);
   <a href="products.php" class="adm-btn"><i class="fa-solid fa-arrow-left"></i> <?= htmlspecialchars(__('btn.back_products')) ?></a>
 </div>
 
-<form method="post" class="adm-form" style="max-width:760px;">
+<form method="post" class="adm-form" style="max-width:860px;">
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
   <input type="hidden" name="action" value="save">
-  <h3 style="font-size:15px;margin-bottom:14px;color:var(--heading);"><?= htmlspecialchars(__('cat.list')) ?></h3>
+  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);"><?= htmlspecialchars(__('cat.list')) ?></h3>
+  <p class="adm-note" style="margin-bottom:14px;"><?= htmlspecialchars(__('cat.order_note')) ?></p>
   <?php if (empty($cats)): ?>
     <p class="adm-note"><?= htmlspecialchars(__('cat.empty')) ?></p>
   <?php else: ?>
   <table class="adm-table" style="box-shadow:none;">
-    <thead><tr><th><?= htmlspecialchars(__('col.key')) ?></th><th><?= htmlspecialchars(__('cat.name')) ?></th><th><?= htmlspecialchars(__('col.icon')) ?></th><th><?= htmlspecialchars(__('col.product_count')) ?></th><th><?= htmlspecialchars(__('col.actions')) ?></th></tr></thead>
-    <tbody>
-      <?php foreach ($cats as $slug => $c): $cnt = $usage[$slug] ?? 0; ?>
+    <thead>
       <tr>
+        <th class="cat-col-order"><?= htmlspecialchars(__('cat.col_order')) ?></th>
+        <th><?= htmlspecialchars(__('col.key')) ?></th>
+        <th><?= htmlspecialchars(__('cat.name')) ?></th>
+        <th><?= htmlspecialchars(__('col.icon')) ?></th>
+        <th><?= htmlspecialchars(__('col.product_count')) ?></th>
+        <th><?= htmlspecialchars(__('col.actions')) ?></th>
+      </tr>
+    </thead>
+    <tbody id="catList">
+      <?php foreach ($cats as $slug => $c): $cnt = $usage[$slug] ?? 0; ?>
+      <tr class="cat-row" data-slug="<?= htmlspecialchars($slug, ENT_QUOTES) ?>">
+        <td class="cat-col-order">
+          <input type="hidden" name="order[]" value="<?= htmlspecialchars($slug) ?>">
+          <div class="cat-order-btns">
+            <button type="button" class="adm-btn adm-btn-sm js-cat-up" title="<?= htmlspecialchars(__('btn.up')) ?>"><i class="fa-solid fa-arrow-up"></i></button>
+            <button type="button" class="adm-btn adm-btn-sm js-cat-down" title="<?= htmlspecialchars(__('btn.down')) ?>"><i class="fa-solid fa-arrow-down"></i></button>
+          </div>
+        </td>
         <td><code><?= htmlspecialchars($slug) ?></code></td>
         <td><input type="text" name="name[<?= htmlspecialchars($slug) ?>]" value="<?= htmlspecialchars($c['name']) ?>" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:inherit;"></td>
         <td><input type="text" name="icon[<?= htmlspecialchars($slug) ?>]" value="<?= htmlspecialchars($c['icon']) ?>" placeholder="fa-tag" style="width:130px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-family:inherit;"></td>
@@ -142,13 +165,30 @@ $delTitle = htmlspecialchars(__('cat.cannot_delete'), ENT_QUOTES);
   <input type="hidden" name="slug" id="catDelSlug">
 </form>
 <script>
-document.querySelectorAll('.js-cat-del').forEach(function (b) {
-  b.addEventListener('click', function () {
-    var msg = <?= json_encode(__('cat.delete_confirm', ['name' => '']), JSON_UNESCAPED_UNICODE) ?>.replace('{name}', b.dataset.name);
-    if (!confirm(msg)) return;
-    document.getElementById('catDelSlug').value = b.dataset.slug;
-    document.getElementById('catDelForm').submit();
+(function () {
+  var list = document.getElementById('catList');
+  if (list) {
+    list.querySelectorAll('.js-cat-up').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('tr');
+        if (row && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+      });
+    });
+    list.querySelectorAll('.js-cat-down').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var row = b.closest('tr');
+        if (row && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+      });
+    });
+  }
+  document.querySelectorAll('.js-cat-del').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var msg = <?= json_encode(__('cat.delete_confirm', ['name' => '']), JSON_UNESCAPED_UNICODE) ?>.replace('{name}', b.dataset.name);
+      if (!confirm(msg)) return;
+      document.getElementById('catDelSlug').value = b.dataset.slug;
+      document.getElementById('catDelForm').submit();
+    });
   });
-});
+})();
 </script>
 <?php admin_foot(); ?>

@@ -114,10 +114,14 @@ function store_load_json() {
         $p['reviews'] = isset($p['reviews']) ? (int)$p['reviews'] : 0;
     }
     unset($p);
+    categories_sort_by_index($data['categories']);
     return $data;
 }
 
 function store_save_json($data) {
+    if (!empty($data['categories']) && is_array($data['categories'])) {
+        categories_apply_sort_indices($data['categories']);
+    }
     $dir = dirname(STORE_FILE);
     if (!is_dir($dir)) {
         if (!@mkdir($dir, 0775, true)) {
@@ -868,6 +872,57 @@ function media_delete_folder($dir) {
     $abs = SHOP_BASE . '/' . UPLOAD_REL . '/' . $dir;
     if (!is_dir($abs)) { return false; }
     return @rmdir($abs); // 空でなければ失敗する（安全）
+}
+
+/** カテゴリ配列を sort フィールド（または配列順）で並べ替え */
+function categories_sort_by_index(array &$categories) {
+    if (empty($categories)) {
+        return;
+    }
+    $hasSort = false;
+    foreach ($categories as $c) {
+        if (isset($c['sort'])) {
+            $hasSort = true;
+            break;
+        }
+    }
+    if (!$hasSort) {
+        return;
+    }
+    uasort($categories, function ($a, $b) {
+        return ((int)($a['sort'] ?? 0)) <=> ((int)($b['sort'] ?? 0));
+    });
+}
+
+/** 表示順（配列の並び）に sort インデックスを付与（JSON 保存用） */
+function categories_apply_sort_indices(array &$categories) {
+    $i = 0;
+    foreach ($categories as $slug => &$c) {
+        $c['sort'] = $i++;
+    }
+    unset($c);
+}
+
+/**
+ * 指定 slug 順にカテゴリ配列を再構成（管理画面の並べ替え用）
+ * @param array<string, array> $categories
+ * @param list<string> $order
+ */
+function categories_reorder(array $categories, array $order) {
+    $out = [];
+    foreach ($order as $slug) {
+        $slug = (string)$slug;
+        if ($slug !== '' && isset($categories[$slug])) {
+            $out[$slug] = $categories[$slug];
+        }
+    }
+    foreach ($categories as $slug => $c) {
+        if (!isset($out[$slug])) {
+            $out[$slug] = $c;
+        }
+    }
+    categories_apply_sort_indices($out);
+    return $out;
 }
 
 /** カテゴリキー => そのカテゴリの商品数 */

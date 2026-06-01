@@ -362,6 +362,11 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .banner-admin-actions { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; min-width: 88px; }
 .banner-admin-actions .adm-btn { justify-content: center; }
 
+/* CATEGORY ADMIN — 並び順 */
+.cat-col-order { width: 88px; }
+.cat-order-btns { display: flex; gap: 4px; justify-content: center; }
+.cat-order-btns .adm-btn { padding: 6px 8px; min-width: 32px; }
+
 @media (max-width: 640px) {
   .adm-grid { grid-template-columns: 1fr; gap: 0; }
   .adm-table th:nth-child(4), .adm-table td:nth-child(4) { display: none; }

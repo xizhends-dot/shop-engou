@@ -145,6 +145,8 @@ return [
     'cat.icon_list' => '图标列表',
     'cat.delete_confirm' => '确定删除分类「{name}」吗？',
     'cat.cannot_delete' => '分类下有商品，无法删除',
+    'cat.col_order' => '排序',
+    'cat.order_note' => '使用 ↑↓ 调整顺序，点击「保存更改」后，前台商品列表的分类筛选将按此顺序显示。',
 
     'feat.title_hint' => '显示在首页（最多 {max} 件）',
     'feat.note' => '勾选的商品将显示在首页「推荐商品」区域（最多 {max} 件）。未选择时自动显示列表前几件。',
