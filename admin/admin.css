@@ -236,6 +236,11 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .adm-guide-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
 .adm-guide-card-head h3 { font-size: 17px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 10px; }
 .adm-guide-card-head h3 i { color: var(--accent-strong); }
+.adm-guide-block { margin-bottom: 18px; }
+.adm-guide-block:last-of-type { margin-bottom: 0; }
+.adm-guide-block-title { font-size: 14px; font-weight: 800; color: var(--heading); margin: 0 0 10px; padding-left: 10px; border-left: 3px solid var(--accent-strong); }
+.adm-guide-warn { margin: 0 0 16px; padding: 10px 12px; background: #fff8e6; border: 1px solid #f0d78c; border-radius: 8px; font-size: 13px; line-height: 1.55; color: #6b4e00; display: flex; gap: 8px; align-items: flex-start; }
+.adm-guide-warn i { color: #c9920a; margin-top: 2px; flex-shrink: 0; }
 .adm-guide-steps { margin: 0; padding-left: 1.35em; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.6; color: var(--heading); }
 .adm-guide-steps li::marker { color: var(--accent-strong); font-weight: 700; }
 .adm-guide-steps code { font-size: 12px; background: #f3f4f7; padding: 2px 6px; border-radius: 4px; }
