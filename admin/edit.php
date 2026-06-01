@@ -85,9 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'error'    => $_FILES['new_images']['error'][$i],
                         'size'     => $_FILES['new_images']['size'][$i],
                     ];
-                    $rel = store_handle_upload($one);
+                    $upErr = null;
+                    $rel = store_handle_upload($one, UPLOAD_DIR, UPLOAD_REL, $upErr);
                     if ($rel) { $kept[] = $rel; }
-                    else { $errors[] = '画像のアップロードに失敗しました（対応形式: JPG/PNG/WebP/GIF、8MBまで）。'; }
+                    else { $errors[] = $upErr ?: '画像のアップロードに失敗しました（対応形式: JPG/PNG/WebP/GIF、8MBまで）。'; }
                 }
             }
         }
@@ -132,7 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: index.php');
                 exit;
             } else {
-                $errors[] = 'データの保存に失敗しました。data/ フォルダの書き込み権限をご確認ください。';
+                $dbErr = store_last_error();
+                $errors[] = $dbErr !== ''
+                    ? 'データの保存に失敗しました: ' . $dbErr
+                    : 'データの保存に失敗しました（MySQL 接続・表構造、または data/ の権限をご確認ください）。';
             }
         }
     }
@@ -404,13 +408,22 @@ admin_head($isEdit ? '商品を編集' : '商品を追加');
     dzSet('アップロード中… ' + imgs.length + ' 枚');
     dz.classList.add('uploading');
     fetch('media.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        return r.text().then(function (t) {
+          try { return JSON.parse(t); }
+          catch (e) { throw new Error(t.slice(0, 200) || ('HTTP ' + r.status)); }
+        });
+      })
       .then(function (j) {
-        (j.paths || []).forEach(addImage);
-        dzSet('追加しました：' + (j.ok || 0) + ' 枚' + (j.ng ? ' / 失敗 ' + j.ng : ''));
+        if (j.ok > 0) {
+          (j.paths || []).forEach(addImage);
+          dzSet('追加しました：' + j.ok + ' 枚' + (j.ng ? ' / 失敗 ' + j.ng : ''));
+        } else {
+          dzSet((j.errors && j.errors.length) ? j.errors.join(' / ') : 'アップロードに失敗しました');
+        }
         dz.classList.remove('uploading');
       })
-      .catch(function () { dz.classList.remove('uploading'); dzSet('アップロードに失敗しました。'); });
+      .catch(function (e) { dz.classList.remove('uploading'); dzSet(e.message || 'アップロードに失敗しました。'); });
   }
 
   // 属性エディタ：行の追加・削除

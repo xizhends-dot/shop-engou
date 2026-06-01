@@ -2,8 +2,7 @@
 require_once __DIR__ . '/auth.php';
 admin_require_login();
 
-$data = store_load();
-$cur  = media_safe_dir($_GET['dir'] ?? '');   // 現在のフォルダ（images/products 起点）
+$cur = media_safe_dir($_GET['dir'] ?? '');   // 現在のフォルダ（images/products 起点）
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act    = $_POST['action'] ?? '';
@@ -28,33 +27,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($act === 'upload') {
         $absDir = SHOP_BASE . '/' . ($postDir === '' ? UPLOAD_REL : UPLOAD_REL . '/' . $postDir);
         $relDir = $postDir === '' ? UPLOAD_REL : UPLOAD_REL . '/' . $postDir;
-        $ok = 0; $ng = 0; $paths = [];
-        if (!empty($_FILES['files']['name'][0])) {
+        $ok = 0; $ng = 0; $paths = []; $errors = [];
+        if (empty($_FILES['files']['name'][0])) {
+            $errors[] = 'アップロードされたファイルがありません（POST サイズ上限 post_max_size を確認）';
+        } else {
             $n = count($_FILES['files']['name']);
             for ($i = 0; $i < $n; $i++) {
-                if ($_FILES['files']['error'][$i] === UPLOAD_ERR_OK) {
-                    $one = [
-                        'name'     => $_FILES['files']['name'][$i],
-                        'tmp_name' => $_FILES['files']['tmp_name'][$i],
-                        'error'    => $_FILES['files']['error'][$i],
-                        'size'     => $_FILES['files']['size'][$i],
-                    ];
-                    $rel = store_handle_upload($one, $absDir, $relDir);
-                    if ($rel) { $ok++; $paths[] = $rel; } else { $ng++; }
-                }
+                $one = [
+                    'name'     => $_FILES['files']['name'][$i],
+                    'tmp_name' => $_FILES['files']['tmp_name'][$i],
+                    'error'    => $_FILES['files']['error'][$i],
+                    'size'     => $_FILES['files']['size'][$i],
+                ];
+                $fileErr = null;
+                $rel = store_handle_upload($one, $absDir, $relDir, $fileErr);
+                if ($rel) { $ok++; $paths[] = $rel; }
+                else { $ng++; $errors[] = ($one['name'] ?? 'file') . ': ' . ($fileErr ?: '保存失敗'); }
             }
         }
         // AJAX（ドラッグ＆ドロップ等）の場合は JSON を返す（アップロード先パスも返す）
         if (strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest') {
-            header('Content-Type: application/json');
-            echo json_encode(['ok' => $ok, 'ng' => $ng, 'paths' => $paths]);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['ok' => $ok, 'ng' => $ng, 'paths' => $paths, 'errors' => $errors], JSON_UNESCAPED_UNICODE);
             exit;
         }
-        set_flash("画像をアップロードしました：成功 {$ok} 件" . ($ng ? " / 失敗 {$ng} 件" : ''), $ng ? 'err' : 'ok');
+        $flash = "画像をアップロードしました：成功 {$ok} 件" . ($ng ? " / 失敗 {$ng} 件" : '');
+        if (!empty($errors)) { $flash .= ' — ' . implode(' / ', array_slice($errors, 0, 3)); }
+        set_flash($flash, $ng ? 'err' : 'ok');
         header('Location: ' . $redir); exit;
     }
 
     if ($act === 'delete') {
+        $data = store_load();
         $path = (string)($_POST['path'] ?? '');
         $removed = store_unlink_image_refs($data, $path);
         store_delete_image($path);
@@ -72,6 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         header('Location: ' . $redir); exit;
     }
+}
+
+try {
+    $data = store_load();
+} catch (Throwable $e) {
+    $data = ['categories' => [], 'products' => []];
+    set_flash('データの読み込みに失敗しました: ' . $e->getMessage(), 'err');
 }
 
 $list  = media_list($cur);
@@ -278,12 +289,24 @@ $crumbs = $cur === '' ? [] : explode('/', $cur);
     setStatus('アップロード中… ' + imgs.length + ' 枚');
     dz.classList.add('uploading');
     fetch('media.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        setStatus('完了：成功 ' + j.ok + ' 枚' + (j.ng ? ' / 失敗 ' + j.ng + ' 枚' : '') + '。更新します…');
-        setTimeout(function () { location.reload(); }, 800);
+      .then(function (r) {
+        return r.text().then(function (t) {
+          try { return JSON.parse(t); }
+          catch (e) { throw new Error(t.slice(0, 200) || ('HTTP ' + r.status)); }
+        });
       })
-      .catch(function () { dz.classList.remove('uploading'); setStatus('アップロードに失敗しました。'); });
+      .then(function (j) {
+        dz.classList.remove('uploading');
+        if (j.ok > 0) {
+          (j.paths || []).forEach(function () {});
+          setStatus('完了：成功 ' + j.ok + ' 枚' + (j.ng ? ' / 失敗 ' + j.ng + ' 枚' : '') + '。更新します…');
+          setTimeout(function () { location.reload(); }, 800);
+        } else {
+          var msg = (j.errors && j.errors.length) ? j.errors.join(' / ') : 'アップロードに失敗しました';
+          setStatus(msg);
+        }
+      })
+      .catch(function (e) { dz.classList.remove('uploading'); setStatus(e.message || 'アップロードに失敗しました。'); });
   }
 })();
 

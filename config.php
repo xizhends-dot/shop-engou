@@ -43,17 +43,17 @@ return [
     'admin_password' => 'engou-admin-2026',
 
     // ---- データ保存方式 / 数据存储方式 ----
-    // 'json'  … data/products.json に保存（既定・DB不要）
+    // 'json'  … data/products.json に保存（DB不要）
     // 'mysql' … MySQL データベースに保存（下の 'db' 設定が必要）
-    'storage' => 'json',
+    'storage' => 'mysql',
 
     // ---- MySQL 接続設定（storage が 'mysql' のときのみ使用）----
     'db' => [
         'host'    => '127.0.0.1',
         'port'    => 3306,
-        'name'    => 'engou_shop',   // データベース名
-        'user'    => 'root',         // ★本番では専用ユーザーを作成してください
-        'pass'    => '',             // ★パスワードを設定
+        'name'    => 'shop_engou_jp',
+        'user'    => 'shop_engou_jp',
+        'pass'    => 'QCmkhP6rKkz7cknX',
         'charset' => 'utf8mb4',
     ],
 ];

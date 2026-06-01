@@ -69,7 +69,16 @@ function store_load() {
     return store_driver() === 'mysql' ? store_load_mysql() : store_load_json();
 }
 function store_save($data) {
+    store_set_last_error('');
     return store_driver() === 'mysql' ? store_save_mysql($data) : store_save_json($data);
+}
+
+/** 直近の store_save / DB エラー（画面表示用） */
+function store_last_error() {
+    return isset($GLOBALS['_store_last_error']) ? (string)$GLOBALS['_store_last_error'] : '';
+}
+function store_set_last_error($msg) {
+    $GLOBALS['_store_last_error'] = (string)$msg;
 }
 
 /* ---------------- JSON ドライバ ---------------- */
@@ -188,6 +197,7 @@ function store_save_mysql($data) {
         return true;
     } catch (Exception $e) {
         if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        store_set_last_error($e->getMessage());
         return false;
     }
 }
@@ -265,15 +275,40 @@ function csrf_check($token) {
     return !empty($_SESSION['csrf']) && is_string($token) && hash_equals($_SESSION['csrf'], $token);
 }
 
+/** PHP アップロードエラーコードを日本語メッセージに */
+function store_upload_err_msg($code) {
+    $map = [
+        UPLOAD_ERR_INI_SIZE   => 'ファイルが大きすぎます（php.ini の upload_max_filesize）',
+        UPLOAD_ERR_FORM_SIZE  => 'ファイルが大きすぎます（フォーム上限）',
+        UPLOAD_ERR_PARTIAL    => 'アップロードが途中で切れました',
+        UPLOAD_ERR_NO_FILE    => 'ファイルが選択されていません',
+        UPLOAD_ERR_NO_TMP_DIR => 'サーバーの一時フォルダがありません',
+        UPLOAD_ERR_CANT_WRITE => 'ディスクへの書き込みに失敗しました',
+        UPLOAD_ERR_EXTENSION  => 'PHP 拡張によりアップロードが拒否されました',
+    ];
+    return $map[$code] ?? ('アップロードエラー（コード ' . (int)$code . '）');
+}
+
 /* ================================================================
    画像アップロード
    $file = $_FILES['xxx'] の1要素
    戻り値: 成功なら相対パス（images/products/xxx.jpg）, 失敗なら null
+   $errOut に失敗理由を返す（任意）
    ================================================================ */
-function store_handle_upload($file, $absDir = UPLOAD_DIR, $relDir = UPLOAD_REL) {
-    if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) { return null; }
-    if (!is_uploaded_file($file['tmp_name'])) { return null; }
-    if ($file['size'] > 8 * 1024 * 1024) { return null; } // 8MB上限
+function store_handle_upload($file, $absDir = UPLOAD_DIR, $relDir = UPLOAD_REL, &$errOut = null) {
+    $errOut = null;
+    if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+        $errOut = store_upload_err_msg($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        return null;
+    }
+    if (!is_uploaded_file($file['tmp_name'])) {
+        $errOut = 'アップロードファイルの検証に失敗しました';
+        return null;
+    }
+    if ($file['size'] > 8 * 1024 * 1024) {
+        $errOut = 'ファイルサイズは 8MB までです';
+        return null;
+    }
 
     $mimeToExt = [
         'image/jpeg' => 'jpg',
@@ -301,12 +336,29 @@ function store_handle_upload($file, $absDir = UPLOAD_DIR, $relDir = UPLOAD_REL) 
         $oe = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if (isset($extMap[$oe])) { $ext = $extMap[$oe]; }
     }
-    if ($ext === null) { return null; }
+    if ($ext === null) {
+        $errOut = '対応していない画像形式です（JPG / PNG / WebP / GIF）';
+        return null;
+    }
 
-    if (!is_dir($absDir)) { @mkdir($absDir, 0775, true); }
+    if (!is_dir($absDir)) {
+        if (!@mkdir($absDir, 0775, true)) {
+            $errOut = '保存フォルダを作成できません: ' . $relDir;
+            return null;
+        }
+    }
+    if (!is_writable($absDir)) {
+        $errOut = '保存フォルダに書き込みできません。サーバーで chown -R www:www images を実行してください（' . $relDir . '）';
+        return null;
+    }
+
     $name = date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
     $dest = $absDir . '/' . $name;
-    if (!move_uploaded_file($file['tmp_name'], $dest)) { return null; }
+    if (!move_uploaded_file($file['tmp_name'], $dest)) {
+        $errOut = 'ファイルの保存に失敗しました（権限またはディスク容量を確認）';
+        return null;
+    }
+    @chmod($dest, 0644);
     return $relDir . '/' . $name;
 }
 
