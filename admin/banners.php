@@ -204,41 +204,23 @@ admin_head(__('page.banners'));
   </form>
 </div>
 
-<div class="adm-form" style="max-width:760px;">
-  <h3 style="font-size:15px;margin-bottom:12px;color:var(--heading);"><?= htmlspecialchars(__('banner.upload_title')) ?></h3>
-  <p class="adm-note"><?= htmlspecialchars(__('banner.upload_note', ['max' => $bannerMax])) ?></p>
-  <?php if ($bannerSlotsLeft <= 0): ?>
-  <p class="adm-note" style="color:var(--danger);font-weight:600;"><?= htmlspecialchars(__('banner.max_full', ['max' => $bannerMax])) ?></p>
-  <?php else: ?>
-  <form method="post" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
-    <input type="hidden" name="action" value="upload">
-    <div class="adm-field" style="margin-bottom:12px;">
-      <input type="file" name="files[]" accept="image/*" multiple required>
-      <small><?= htmlspecialchars(__('banner.upload_hint', ['left' => $bannerSlotsLeft, 'max' => $bannerMax])) ?></small>
-    </div>
-    <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-upload"></i> <?= htmlspecialchars(__('btn.upload')) ?></button>
-  </form>
-  <?php endif; ?>
-</div>
+<div class="adm-form" style="max-width:900px;margin-top:8px;">
+  <h3 style="font-size:15px;margin-bottom:6px;color:var(--heading);"><?= htmlspecialchars(__('banner.slots_title', ['max' => $bannerMax])) ?></h3>
+  <p class="adm-note" style="margin-bottom:14px;"><?= htmlspecialchars(__('banner.upload_note', ['max' => $bannerMax])) ?> <?= htmlspecialchars(__('banner.list_note')) ?></p>
 
-<?php if (empty($banners)): ?>
-  <div class="adm-empty" style="margin-top:20px;"><?= htmlspecialchars(__('banner.empty')) ?></div>
-<?php else: ?>
-<p class="adm-note" style="margin-top:20px;"><?= htmlspecialchars(__('banner.list_note')) ?></p>
-<form method="post" style="margin-top:12px;">
+<?php if (!empty($banners)): ?>
+<form method="post" id="bannerSaveForm">
   <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
   <input type="hidden" name="action" value="save">
   <div class="banner-admin-list" id="bannerList">
-    <?php foreach ($banners as $b):
+    <?php foreach ($banners as $si => $b):
       $isDraft = !banner_has_content($b);
+      $slotNum = $si + 1;
     ?>
     <div class="banner-admin-item<?= $isDraft ? ' banner-admin-item--draft' : '' ?>" data-img="<?= htmlspecialchars($b['image']) ?>">
+      <div class="banner-slot-head"><span class="banner-slot-num"><?= htmlspecialchars(__('banner.slot_label', ['n' => $slotNum])) ?></span><?php if ($isDraft): ?><span class="banner-draft-badge" style="position:static;"><?= htmlspecialchars(__('banner.draft_badge')) ?></span><?php endif; ?></div>
       <input type="hidden" name="order[]" value="<?= htmlspecialchars($b['image']) ?>">
       <img src="../<?= htmlspecialchars($b['image']) ?>" alt="">
-      <?php if ($isDraft): ?>
-      <span class="banner-draft-badge"><?= htmlspecialchars(__('banner.draft_badge')) ?></span>
-      <?php endif; ?>
       <div class="banner-admin-meta">
         <label><?= htmlspecialchars(__('banner.per_title')) ?></label>
         <input type="text" name="title[<?= htmlspecialchars($b['image']) ?>]" value="<?= htmlspecialchars($b['title']) ?>" placeholder="例: 新生活応援フェア開催中！">
@@ -262,6 +244,23 @@ admin_head(__('page.banners'));
     <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-floppy-disk"></i> <?= htmlspecialchars(__('banner.save_order')) ?></button>
   </div>
 </form>
+<?php endif; ?>
+
+  <div class="banner-admin-list" style="margin-top:<?= empty($banners) ? '0' : '14px' ?>;">
+    <?php for ($slot = count($banners) + 1; $slot <= $bannerMax; $slot++): ?>
+    <div class="banner-admin-slot-empty">
+      <div class="banner-slot-head"><span class="banner-slot-num"><?= htmlspecialchars(__('banner.slot_add_title', ['n' => $slot])) ?></span></div>
+      <p class="adm-note"><?= htmlspecialchars(__('banner.slot_add_hint')) ?></p>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
+        <input type="hidden" name="action" value="upload">
+        <input type="file" name="files[]" accept="image/*" required aria-label="<?= htmlspecialchars(__('banner.slot_add_title', ['n' => $slot])) ?>">
+        <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-plus"></i> <?= htmlspecialchars(__('banner.slot_add_btn')) ?></button>
+      </form>
+    </div>
+    <?php endfor; ?>
+  </div>
+</div>
 
 <!-- 削除・差し替え用（メインフォームの外に置く — ネスト form 禁止） -->
 <form method="post" id="delForm" style="display:none;">
@@ -279,6 +278,7 @@ admin_head(__('page.banners'));
 <script>
 (function () {
   var list = document.getElementById('bannerList');
+  if (!list) return;
   var replaceForm = document.getElementById('replaceForm');
   var replacePath = document.getElementById('replacePath');
   var replaceFile = document.getElementById('replaceFile');
@@ -303,13 +303,15 @@ admin_head(__('page.banners'));
   list.querySelectorAll('.js-up').forEach(function (b) {
     b.addEventListener('click', function () {
       var item = b.closest('.banner-admin-item');
-      if (item.previousElementSibling) list.insertBefore(item, item.previousElementSibling);
+      var prev = item && item.previousElementSibling;
+      if (prev && prev.classList.contains('banner-admin-item')) list.insertBefore(item, prev);
     });
   });
   list.querySelectorAll('.js-down').forEach(function (b) {
     b.addEventListener('click', function () {
       var item = b.closest('.banner-admin-item');
-      if (item.nextElementSibling) list.insertBefore(item.nextElementSibling, item);
+      var next = item && item.nextElementSibling;
+      if (next && next.classList.contains('banner-admin-item')) list.insertBefore(next, item);
     });
   });
   // 削除
@@ -323,5 +325,4 @@ admin_head(__('page.banners'));
   });
 })();
 </script>
-<?php endif; ?>
 <?php admin_foot(); ?>

@@ -410,6 +410,18 @@ html[lang="zh-CN"] body { font-family: "Noto Sans SC", "Noto Sans JP", "Helvetic
 .banner-admin-meta input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; font-family: inherit; }
 .banner-admin-actions { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; min-width: 88px; }
 .banner-admin-actions .adm-btn { justify-content: center; }
+.banner-slot-head { flex: 0 0 100%; width: 100%; margin: 0 0 4px; font-size: 13px; font-weight: 800; color: var(--heading); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.banner-slot-head .banner-slot-num { color: var(--accent-strong); }
+.banner-admin-item { flex-wrap: wrap; align-items: flex-start; }
+.banner-admin-item .banner-slot-head { order: -1; }
+.banner-admin-slot-empty {
+  display: flex; flex-direction: column; gap: 12px; align-items: stretch;
+  background: #f8fafc; border: 2px dashed #c5ccd6; border-radius: 12px; padding: 18px 20px;
+}
+.banner-admin-slot-empty .banner-slot-head { margin-bottom: 4px; }
+.banner-admin-slot-empty form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.banner-admin-slot-empty input[type=file] { flex: 1; min-width: 200px; font-size: 13px; }
+.banner-admin-slot-empty .adm-note { margin: 0; flex: 1 1 100%; }
 
 /* CATEGORY ADMIN — ドラッグ並び替え */
 .cat-col-order { width: 52px; text-align: center; vertical-align: middle; }
