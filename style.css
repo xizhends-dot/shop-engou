@@ -164,16 +164,16 @@ main { padding-top: 72px; }
 /* ---------- PRODUCT DETAIL ---------- */
 .detail-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding: 12px 0 8px; }
 .detail-gallery .main-img-wrap { position: relative; }
-.detail-gallery .main-img { aspect-ratio: 1 / 1; border-radius: 18px; overflow: hidden; background: var(--bg-soft); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
-.detail-gallery .main-img img { width: 100%; height: 100%; object-fit: cover; }
+.detail-gallery .main-img { aspect-ratio: 1 / 1; border-radius: 18px; overflow: hidden; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
+.detail-gallery .main-img img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center; }
 .detail-gallery .main-img .ph-icon { font-size: 120px; color: #fff; filter: drop-shadow(0 6px 20px rgba(20,20,46,0.3)); }
 .detail-gallery .gallery-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 44px; height: 44px; border: none; border-radius: 50%; background: rgba(255,255,255,0.92); color: var(--heading); box-shadow: 0 4px 16px rgba(20,20,46,0.18); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: background .2s, transform .2s, box-shadow .2s; }
 .detail-gallery .gallery-nav:hover { background: #fff; transform: translateY(-50%) scale(1.06); box-shadow: 0 6px 20px rgba(20,20,46,0.22); }
 .detail-gallery .gallery-prev { left: 12px; }
 .detail-gallery .gallery-next { right: 12px; }
 .detail-gallery .thumbs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 12px; }
-.detail-gallery .thumb { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); padding: 0; cursor: pointer; background: #fff; transition: border-color .2s, transform .2s; }
-.detail-gallery .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.detail-gallery .thumb { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); padding: 0; cursor: pointer; background: #fff; display: flex; align-items: center; justify-content: center; transition: border-color .2s, transform .2s; }
+.detail-gallery .thumb img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: center; display: block; }
 .detail-gallery .thumb:hover { transform: translateY(-2px); }
 .detail-gallery .thumb.active { border-color: var(--accent-strong); box-shadow: 0 0 0 1px var(--accent-strong); }
 .detail-info .d-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent-strong); border: 1px solid rgba(95,122,18,0.35); padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; font-weight: 600; }
