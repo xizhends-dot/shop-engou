@@ -172,8 +172,8 @@ main { padding-top: 72px; }
 .detail-gallery .gallery-prev { left: 12px; }
 .detail-gallery .gallery-next { right: 12px; }
 .detail-gallery .thumbs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 12px; }
-.detail-gallery .thumb { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); padding: 0; cursor: pointer; background: var(--bg-soft); transition: border-color .2s, transform .2s; }
-.detail-gallery .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-gallery .thumb { width: 100%; aspect-ratio: 1 / 1; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); padding: 0; cursor: pointer; background: #fff; transition: border-color .2s, transform .2s; }
+.detail-gallery .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .detail-gallery .thumb:hover { transform: translateY(-2px); }
 .detail-gallery .thumb.active { border-color: var(--accent-strong); box-shadow: 0 0 0 1px var(--accent-strong); }
 .detail-info .d-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent-strong); border: 1px solid rgba(95,122,18,0.35); padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; font-weight: 600; }
