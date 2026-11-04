@@ -1,0 +1,56 @@
+/* 商品一覧専用。既存の編集フォームや管理画面の共通CSSには影響しない。 */
+.product-search {
+  margin: 0 0 22px;
+  padding: 20px 22px 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(20, 20, 46, .035);
+}
+.product-search-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: end; gap: 16px; }
+.product-search-field { min-width: 0; }
+.product-search-field label { display: block; margin-bottom: 7px; color: var(--heading); font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.product-search-input { position: relative; }
+.product-search-input > i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #737b88; font-size: 14px; pointer-events: none; }
+.product-search-input input {
+  display: block; width: 100%; min-width: 0; height: 46px;
+  padding: 0 12px 0 40px; border: 1px solid #d9dee5; border-radius: 8px;
+  background: #f8f9fb; color: var(--heading); font: inherit; font-size: 14px;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.product-search-input input::placeholder { color: #687180; opacity: 1; font-size: 13px; }
+.product-search-input input:hover { border-color: #aeb7c3; }
+.product-search-input input:focus { outline: none; background: #fff; border-color: var(--accent-strong); box-shadow: 0 0 0 3px rgba(95, 122, 18, .12); }
+.product-search-input:focus-within > i { color: var(--accent-strong); }
+.product-search-actions { display: flex; align-items: center; gap: 8px; }
+.product-search-submit, .product-search-reset {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 46px; padding: 0 19px; border-radius: 8px; border: 1px solid transparent;
+  font: inherit; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer;
+  transition: background .18s, border-color .18s, box-shadow .18s;
+}
+.product-search-submit { background: var(--nav); color: #fff; }
+.product-search-submit > i { color: var(--accent); }
+.product-search-submit:hover { background: #292945; box-shadow: 0 3px 8px rgba(20, 20, 46, .14); }
+.product-search-reset { background: #fff; border-color: #d9dee5; color: #535c6b; }
+.product-search-reset:hover { background: #f4f6f9; border-color: #aeb7c3; color: var(--heading); }
+.product-search-actions :focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.product-search-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding: 11px 0 12px; border-top: 1px solid #edf0f3; }
+.product-search-footer p { margin: 0; color: #636d7b; font-size: 12px; line-height: 1.65; }
+.product-search-footer p > i { margin-right: 5px; color: #747f8d; }
+.product-search-count { flex-shrink: 0; padding: 2px 10px; border-radius: 5px; color: #455a0c; background: #f0f5d8; font-size: 12px; font-weight: 700; }
+.product-search.is-filtered { border-color: #bbc991; }
+@media (max-width: 960px) {
+  .product-search-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  .product-search-actions { grid-column: 1 / -1; justify-content: flex-end; }
+}
+@media (max-width: 560px) {
+  .product-search { padding: 16px 16px 0; border-radius: 12px; }
+  .product-search-row { grid-template-columns: minmax(0, 1fr); }
+  .product-search-input input { font-size: 16px; }
+  .product-search-actions > * { flex: 1; }
+  .product-search-footer { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-search-input input, .product-search-submit, .product-search-reset { transition: none; }
+}

@@ -30,20 +30,31 @@ admin_head(__('page.products'));
   </div>
 </div>
 
-<form method="get" action="products.php" class="adm-form" role="search" style="margin-bottom:20px;">
-  <div class="adm-grid">
-    <div class="adm-field">
+<form method="get" action="products.php" class="product-search<?= $isSearching ? ' is-filtered' : '' ?>" role="search" aria-label="<?= htmlspecialchars(__('products.search')) ?>">
+  <div class="product-search-row">
+    <div class="product-search-field">
       <label for="search-id"><?= htmlspecialchars(__('col.product_id')) ?></label>
-      <input type="search" id="search-id" name="search_id" value="<?= htmlspecialchars($searchId) ?>" placeholder="<?= htmlspecialchars(__('products.search_id')) ?>">
+      <div class="product-search-input">
+        <i class="fa-solid fa-hashtag" aria-hidden="true"></i>
+        <input type="search" id="search-id" name="search_id" value="<?= htmlspecialchars($searchId) ?>" placeholder="<?= htmlspecialchars(__('products.search_id')) ?>" aria-describedby="search-hint">
+      </div>
     </div>
-    <div class="adm-field">
+    <div class="product-search-field product-search-field-name">
       <label for="search-name"><?= htmlspecialchars(__('col.name')) ?></label>
-      <input type="search" id="search-name" name="search_name" value="<?= htmlspecialchars($searchName) ?>" placeholder="<?= htmlspecialchars(__('products.search_name')) ?>">
+      <div class="product-search-input">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input type="search" id="search-name" name="search_name" value="<?= htmlspecialchars($searchName) ?>" placeholder="<?= htmlspecialchars(__('products.search_name')) ?>" aria-describedby="search-hint">
+      </div>
+    </div>
+    <div class="product-search-actions">
+      <button type="submit" class="product-search-submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> <?= htmlspecialchars(__('products.search')) ?></button>
+      <a href="products.php" class="product-search-reset"><i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> <?= htmlspecialchars(__('products.search_reset')) ?></a>
     </div>
   </div>
-  <p class="adm-note"><?= htmlspecialchars(__('products.search_hint')) ?></p>
-  <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> <?= htmlspecialchars(__('products.search')) ?></button>
-  <a href="products.php" class="adm-btn"><?= htmlspecialchars(__('products.search_reset')) ?></a>
+  <div class="product-search-footer">
+    <p id="search-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> <?= htmlspecialchars(__('products.search_hint')) ?></p>
+    <?php if ($isSearching): ?><span class="product-search-count"><?= (int)$total ?> <?= htmlspecialchars(__('unit.count')) ?></span><?php endif; ?>
+  </div>
 </form>
 
 <?php if (empty($products)): ?>

@@ -79,6 +79,9 @@ function admin_head($title, $showNav = true) {
 <link rel="alternate icon" href="../favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="admin.css">
+<?php if (adm_current_page() === 'products'): ?>
+<link rel="stylesheet" href="product-search.css?v=<?= (int)filemtime(__DIR__ . '/product-search.css') ?>">
+<?php endif; ?>
 </head>
 <body>
 <?php if ($showNav): ?>
