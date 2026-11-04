@@ -110,8 +110,16 @@ require __DIR__ . '/partials/header.php';
           <fieldset class="sku-group" data-group-index="<?= (int) $groupIndex ?>">
             <legend class="sku-group__legend"><?= shop_e($group['name']) ?></legend>
             <div class="sku-group__list">
-              <?php foreach ($group['options'] as $optionIndex => $option): ?>
-              <button type="button" class="sku-group__option" data-group-index="<?= (int) $groupIndex ?>" data-option-index="<?= (int) $optionIndex ?>" aria-pressed="false"><?= shop_e($option) ?></button>
+              <?php foreach ($group['options'] as $optionIndex => $option):
+                $optionPrices = [];
+                foreach ($skus as $sku) {
+                    if ($sku['options'][$groupIndex] === $option) { $optionPrices[] = $sku['price']; }
+                }
+              ?>
+              <button type="button" class="sku-group__option" data-group-index="<?= (int) $groupIndex ?>" data-option-index="<?= (int) $optionIndex ?>" aria-pressed="false">
+                <span class="sku-group__name"><?= shop_e($option) ?></span>
+                <span class="sku-group__price"><?= $optionPrices ? yen(min($optionPrices), max($optionPrices) > min($optionPrices) ? max($optionPrices) : null) : '—' ?></span>
+              </button>
               <?php endforeach; ?>
             </div>
           </fieldset>

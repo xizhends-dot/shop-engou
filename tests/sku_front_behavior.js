@@ -60,6 +60,12 @@ function setup({ skus, groups, legacy = false, preselected = -1, preselectedOpti
       groups.forEach((group, groupIndex) => {
         group.options.forEach((option, optionIndex) => {
           const button = new Element(option);
+          const priceLabel = new Element();
+          button.appendChild(priceLabel);
+          button.querySelector = selector => {
+            assert.equal(selector, '.sku-group__price');
+            return priceLabel;
+          };
           button.dataset = { groupIndex: String(groupIndex), optionIndex: String(optionIndex) };
           button.setAttribute('aria-pressed', preselectedOptions[groupIndex] === option ? 'true' : 'false');
           buttons.push(button);
@@ -114,7 +120,8 @@ function setup({ skus, groups, legacy = false, preselected = -1, preselectedOpti
   return {
     elements, inquiry, price, initialPrice, radios, buttons, chips, window,
     body: () => new URL(inquiry.href).searchParams.get('body'),
-    option(groupIndex, value) { return buttons.find(button => Number(button.dataset.groupIndex) === groupIndex && button.textContent === value); },
+    option(groupIndex, value) { return buttons.find(button => Number(button.dataset.groupIndex) === groupIndex && button.ownText === value); },
+    optionPrice(groupIndex, value) { return this.option(groupIndex, value).querySelector('.sku-group__price').textContent; },
     choose(groupIndex, value) { this.option(groupIndex, value).dispatch('click'); },
     select(index) {
       radios.forEach((radio, position) => { radio.checked = index === position; });
@@ -202,10 +209,18 @@ const combinations = [
 ];
 const grouped = setup({ groups, skus: combinations, legacy: true });
 assert.equal(grouped.price.textContent, '¥1,000 ～ ¥2,000（税込）');
+assert.equal(grouped.optionPrice(0, 'RED'), '¥1,000 ～ ¥1,200（税込）');
+assert.equal(grouped.option(0, 'RED').querySelector('.sku-group__price').childNodes[0].className, 'tax');
+assert.equal(grouped.optionPrice(0, 'BLUE'), '¥1,500（税込）');
+assert.equal(grouped.optionPrice(1, 'M'), '¥1,200 ～ ¥1,500（税込）');
+assert.equal(grouped.optionPrice(0, 'UNAVAILABLE'), '—');
 assert(grouped.option(0, 'UNAVAILABLE').disabled, 'An option without any SKU must be disabled initially.');
 assert(!grouped.body().includes('SKU番号') && !grouped.body().includes('色：'), 'Grouped SKU must not read unrelated attributes.');
 grouped.choose(0, 'RED');
 assert.equal(grouped.price.textContent, '¥1,000 ～ ¥1,200（税込）');
+assert.equal(grouped.optionPrice(1, 'S'), '¥1,000（税込）');
+assert.equal(grouped.optionPrice(1, 'M'), '¥1,200（税込）');
+assert.equal(grouped.optionPrice(1, 'L'), '—');
 assert.equal(grouped.option(0, 'RED').getAttribute('aria-pressed'), 'true');
 assert(grouped.elements.skuStatus.textContent.includes('サイズを選択してください'));
 assert(grouped.option(1, 'L').disabled && !grouped.option(1, 'S').disabled && !grouped.option(1, 'M').disabled);

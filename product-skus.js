@@ -144,6 +144,24 @@
     }
   }
 
+  function updateOptionPrice(button, matches) {
+    var label = button.querySelector('.sku-group__price');
+    if (!label) return;
+    var amounts = matches.map(function (item) { return Number(item.price); });
+    if (!amounts.length) {
+      label.textContent = '—';
+      return;
+    }
+    var minimum = Math.min.apply(null, amounts);
+    var maximum = Math.max.apply(null, amounts);
+    label.textContent = '¥' + formatPrice(minimum)
+      + (maximum > minimum ? ' ～ ¥' + formatPrice(maximum) : '');
+    var tax = document.createElement('span');
+    tax.className = 'tax';
+    tax.textContent = '（税込）';
+    label.appendChild(tax);
+  }
+
   function updateSelection() {
     var selections = selectedOptions();
     var matches = groupData ? groupData.skus.filter(function (sku) { return matchesSelections(sku, selections); }) : [];
@@ -154,12 +172,13 @@
       var groupIndex = Number(button.dataset.groupIndex);
       var value = buttonOption(button);
       var pressed = value !== null && selections[groupIndex] === value;
-      var available = groupData && groupData.skus.some(function (item) {
+      var candidates = groupData ? groupData.skus.filter(function (item) {
         return item.options[groupIndex] === value && matchesSelections(item, selections, groupIndex);
-      });
+      }) : [];
       button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
       // 選択済みは常に解除できる。ほかの項目と組み合わせられない候補だけ無効にする。
-      button.disabled = !pressed && !available;
+      button.disabled = !pressed && candidates.length === 0;
+      updateOptionPrice(button, candidates);
     });
     renderPrice(sku, matches);
     if (status) {
