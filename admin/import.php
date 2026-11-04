@@ -123,9 +123,10 @@ admin_head(__('page.import'));
   <div class="adm-formfoot" style="border:none;padding-top:0;margin-top:0;flex-wrap:wrap;gap:10px;">
     <a href="import.php?action=sample" class="adm-btn adm-btn-primary"><i class="fa-solid fa-file-excel"></i> サンプル Excel</a>
     <a href="import.php?action=export" class="adm-btn adm-btn-primary"><i class="fa-solid fa-file-export"></i> 商品を Excel 出力</a>
-    <a href="import.php?action=sample&amp;format=csv" class="adm-btn" title="従来形式"><i class="fa-solid fa-file-csv"></i> サンプル CSV</a>
-    <a href="import.php?action=export&amp;format=csv" class="adm-btn" title="従来形式"><i class="fa-solid fa-file-csv"></i> CSV 出力</a>
+    <a href="import.php?action=sample&amp;format=csv" class="adm-btn" title="UTF-8 CSV"><i class="fa-solid fa-file-csv"></i> サンプル CSV</a>
+    <a href="import.php?action=export&amp;format=csv" class="adm-btn" title="UTF-8 CSV"><i class="fa-solid fa-file-csv"></i> CSV 出力</a>
   </div>
+  <p class="adm-note">「SAMPLE-003」はカラー×サイズ別のSKU価格例です。「SAMPLE-001・002」の画像パスはダミーなので、取り込む前に差し替えるか空欄にしてください。</p>
 
   <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">
 

@@ -358,6 +358,20 @@ function import_sample_rows(array $cats) {
         ['SAMPLE-002', $c2, 'サンプル商品（価格帯・複数画像）', '静音・大容量', '12800', '19800', '[]', '[]', 'NEW', 'fa-house-chimney', '#93c5fd', 'image1 がメイン画像、image2 以降は任意です。', '0', '0'],
         array_pad(['images/products/sample/1.jpg', 'images/products/sample/2.jpg', 'images/products/sample/3.jpg'], IMPORT_IMG_MAX, '')
     );
+    $groups = [
+        ['name' => 'カラー', 'options' => ['RED', 'BLUE']],
+        ['name' => 'サイズ', 'options' => ['S', 'M']],
+    ];
+    $skus = [
+        ['id' => 'RED-S', 'name' => 'RED / S', 'price' => 1000, 'options' => ['RED', 'S']],
+        ['id' => 'RED-M', 'name' => 'RED / M', 'price' => 1200, 'options' => ['RED', 'M']],
+        ['id' => 'BLUE-S', 'name' => 'BLUE / S', 'price' => 1400, 'options' => ['BLUE', 'S']],
+        ['id' => 'BLUE-M', 'name' => 'BLUE / M', 'price' => 1600, 'options' => ['BLUE', 'M']],
+    ];
+    $rows[] = array_merge(
+        ['SAMPLE-003', $c1, 'サンプル商品（カラー・サイズ別価格）', 'カラー・サイズを選択', '', '', json_encode($skus, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), json_encode($groups, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), '', 'fa-box', '#DEF13F', 'SKUごとに価格が異なります。', '0', '0'],
+        array_fill(0, IMPORT_IMG_MAX, '')
+    );
     return $rows;
 }
 

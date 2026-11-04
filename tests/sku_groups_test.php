@@ -74,7 +74,18 @@ $product = ['id'=>'GROUPS', 'category'=>'test', 'name'=>'Sample', 'price'=>9999,
 $data = ['categories'=>$cats, 'products'=>[$product]];
 $export = import_build_export_rows([$product]);
 verify_group(count($export[0]) === count($export[1]), 'export columns align');
-foreach (import_sample_rows($cats) as $sampleRow) { verify_group(count($sampleRow) === count($export[0]), 'sample columns align'); }
+$sample = import_sample_rows($cats);
+foreach ($sample as $sampleRow) { verify_group(count($sampleRow) === count($export[0]), 'sample columns align'); }
+verify_group(count($sample) === 4, 'sample includes a grouped SKU product');
+$sampleHeader = array_flip($sample[0]);
+$sampleProduct = $sample[3];
+verify_group($sampleProduct[$sampleHeader['id']] === 'SAMPLE-003' && $sampleProduct[$sampleHeader['price']] === '' && $sampleProduct[$sampleHeader['price_max']] === '', 'grouped sample leaves derived price columns empty');
+verify_group(json_decode($sampleProduct[$sampleHeader['sku_groups']], true) === $groups, 'grouped sample contains valid color and size JSON');
+$sampleSkus = json_decode($sampleProduct[$sampleHeader['skus']], true);
+verify_group(count($sampleSkus) === 4 && $sampleSkus[0]['options'] === ['RED','S'] && $sampleSkus[3]['options'] === ['BLUE','M'], 'grouped sample maps all combinations to priced SKUs');
+$sampleSheet = import_parse_sheet_rows([$sample[0], $sampleProduct]);
+$sampleResult = import_apply_rows($sampleSheet['rows'], $sampleSheet['map'], ['categories'=>$cats,'products'=>[]], $cats);
+verify_group(!$sampleResult['rowErrors'] && $sampleResult['added'] === 1 && $sampleResult['data']['products'][0]['price'] === 1000 && $sampleResult['data']['products'][0]['price_max'] === 1600, 'grouped sample imports without images and derives the price range');
 $sheet = import_parse_sheet_rows($export);
 $result = import_apply_rows($sheet['rows'], $sheet['map'], ['categories'=>$cats,'products'=>[]], $cats);
 verify_group(!$result['rowErrors'] && $result['data']['products'][0]['sku_groups'] === $groups && $result['data']['products'][0]['skus'] === $normalized && $result['data']['products'][0]['price'] === 1000 && $result['data']['products'][0]['price_max'] === 1600, 'sheet import preserves groups and derives prices');
@@ -130,6 +141,19 @@ try {
         $sheet = import_parse_sheet_rows($read['rows']);
         $result = import_apply_rows($sheet['rows'], $sheet['map'], ['categories'=>$cats,'products'=>[]], $cats, !empty($read['from_csv']));
         verify_group(!$result['rowErrors'] && $result['data']['products'][0]['sku_groups'] === $groups && $result['data']['products'][0]['skus'] === $normalized, strtoupper($format) . ' complete group/SKU round trip');
+        $sampleOnly = [$sample[0], $sampleProduct];
+        if ($format === 'csv') {
+            $handle = fopen($path, 'wb');
+            foreach ($sampleOnly as $row) { fputcsv($handle, $row, ',', '"', ''); }
+            fclose($handle);
+            $sampleRead = import_read_csv($path);
+        } else {
+            verify_group(\Shuchkin\SimpleXLSXGen::fromArray($sampleOnly, '商品')->saveAs($path), 'sample XLSX generation');
+            $sampleRead = import_read_xlsx($path);
+        }
+        $sampleParsed = import_parse_sheet_rows($sampleRead['rows']);
+        $sampleImported = import_apply_rows($sampleParsed['rows'], $sampleParsed['map'], ['categories'=>$cats,'products'=>[]], $cats, !empty($sampleRead['from_csv']));
+        verify_group(!$sampleImported['rowErrors'] && $sampleImported['added'] === 1 && $sampleImported['data']['products'][0]['sku_groups'] === $groups && $sampleImported['data']['products'][0]['skus'] === $sampleSkus && $sampleImported['data']['products'][0]['price_max'] === 1600, strtoupper($format) . ' grouped sample round trip');
     }
 } finally {
     // テスト自身が作成した一時ディレクトリ配下の既知ファイルのみ削除する。
