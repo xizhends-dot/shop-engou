@@ -99,6 +99,9 @@ admin_head(__('page.import'));
 <?php if (!$zipOk): ?>
 <div class="adm-flash adm-flash-err"><?= __('import.zip_warn') ?></div>
 <?php endif; ?>
+<?php if (!function_exists('curl_init')): ?>
+<div class="adm-flash adm-flash-err">外部画像URLを取り込むには PHP の cURL 拡張を有効にしてください。本サイトの画像パスを使用する取り込みはそのまま利用できます。</div>
+<?php endif; ?>
 
 <?php if ($report && !empty($report['err'])): ?>
 <div class="adm-flash adm-flash-err"><ul><?php foreach ($report['err'] as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?></ul></div>
@@ -133,7 +136,11 @@ admin_head(__('page.import'));
     <code>price</code> は最低価格（必須）、<code>price_max</code> は最高価格（任意）です。価格は0〜2147483647の半角整数で、最高価格は最低価格以上にしてください。<br>
     <code>price_max</code> 列の空欄は最高価格を解除し、単一価格になります。旧ファイルなどで列自体がない場合、既存商品の最高価格は維持され、新規商品は単一価格になります。維持する最高価格を最低価格が超える行は取り込めません。<br>
     <code>category</code> はキー（<?= htmlspecialchars(implode(' / ', array_keys($cats))) ?>）または名称。<br>
-    画像は <code>image1</code>（メイン）〜 <code>image20</code>。空欄の列は既存画像を維持します。
+    画像は <code>image1</code>（メイン）〜 <code>image20</code> に、本站の画像パスまたは公開 <strong>HTTP(S) 画像URL</strong>を指定します。URLの画像は取り込み時にサーバーへダウンロードされ、以後は本站の画像を表示します。<br>
+    JPG / PNG / WebP / GIF、1枚8MBまで。URLの拡張子ではなく画像の実体を検証します。利用権限のある画像のみ指定してください。<br>
+    全画像欄が空なら既存画像を維持し、1枚でも指定すると指定順の画像一覧に置き換えます。ダウンロード等に失敗した行は商品を変更せずスキップします。<br>
+    外部画像は1回につき最大50URL・ダウンロード時間予算20秒で処理します（DNS問い合わせやサーバー保存に別途時間がかかる場合があります）。上限に達した場合は成功済みの行を除き、小分けに再取り込みしてください。途中までダウンロードされた画像は画像管理に残る場合があります。<br>
+    PHP cURL 拡張が必要です。ログイン必須・アクセス制限付き・転送URLは利用できません。転送の場合は最終的な画像URLを指定してください。
   </p>
   <form method="post" enctype="multipart/form-data" id="importForm">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
@@ -230,7 +237,8 @@ admin_head(__('page.import'));
       return;
     }
     dz.classList.add('uploading');
-    setStatus('取り込み中…');
+    document.getElementById('btnImportSubmit').disabled = true;
+    setStatus('取り込み中… 外部画像のダウンロードが完了するまで、このページを閉じないでください。');
   });
 })();
 </script>

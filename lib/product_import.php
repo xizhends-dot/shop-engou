@@ -132,6 +132,9 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
     $updated = 0;
     $rowErrors = [];
     $line = 1;
+    $downloadCache = [];
+    $downloadDeadline = microtime(true) + 20;
+    $downloadCount = 0;
 
     foreach ($dataRows as $row) {
         $line++;
@@ -206,6 +209,40 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         }
         if (empty($images)) {
             $images = ($idx >= 0) ? ($data['products'][$idx]['images'] ?? []) : [];
+        } else {
+            $resolvedImages = [];
+            $imageError = null;
+            foreach ($images as $imageIndex => $source) {
+                if (preg_match('#^https?://#i', $source)) {
+                    if (!isset($downloadCache[$source])) {
+                        if ($downloadCount >= 50 || microtime(true) >= $downloadDeadline) {
+                            $imageError = '外部画像の処理上限（50枚／20秒）に達しました。行数を減らして再度取り込んでください。';
+                            break;
+                        }
+                        require_once __DIR__ . '/remote_image.php';
+                        $downloadCount++;
+                        $downloadError = null;
+                        $local = remote_image_download($source, $downloadError, $downloadDeadline);
+                        $downloadCache[$source] = ['path' => $local, 'error' => $downloadError];
+                    }
+                    $download = $downloadCache[$source];
+                    if (!$download['path']) {
+                        $imageError = '画像' . ($imageIndex + 1) . ': ' . $download['error'];
+                        break;
+                    }
+                    $resolvedImages[] = $download['path'];
+                } elseif (store_validate_product_image_path($source)) {
+                    $resolvedImages[] = $source;
+                } else {
+                    $imageError = '画像' . ($imageIndex + 1) . ': 有効なローカル画像パスまたは公開 HTTP(S) 画像URLを指定してください。';
+                    break;
+                }
+            }
+            if ($imageError !== null) {
+                $rowErrors[] = "{$line}行目: {$imageError} この行の商品は変更していません。";
+                continue;
+            }
+            $images = $resolvedImages;
         }
         $images = store_filter_product_image_paths($images);
 
