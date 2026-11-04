@@ -67,7 +67,7 @@
         initialPrice.childNodes.forEach(function (node) { price.appendChild(node.cloneNode(true)); });
       }
     }
-    if (status) status.textContent = sku ? '選択中：' + sku.name + '（SKU番号：' + sku.id + '）' : initialStatus;
+    if (status) status.textContent = sku ? '選択中：' + sku.name : initialStatus;
     if (reset) reset.setAttribute('aria-disabled', sku ? 'false' : 'true');
     updateInquiry(sku);
   }

@@ -110,7 +110,6 @@ require __DIR__ . '/partials/header.php';
             <label class="sku-options__label" for="product-sku-<?= (int) $skuIndex ?>">
               <span class="sku-options__identity">
                 <span class="sku-options__name"><?= shop_e($sku['name']) ?></span>
-                <span class="sku-options__id">SKU番号：<?= shop_e($sku['id']) ?></span>
               </span>
               <span class="sku-options__price"><?= yen($sku['price']) ?></span>
             </label>

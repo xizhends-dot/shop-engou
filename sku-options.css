@@ -21,7 +21,7 @@
   line-height: 1.7;
 }
 
-.sku-options__list { display: grid; gap: 10px; }
+.sku-options__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .sku-options__item { position: relative; min-width: 0; }
 
 .sku-options__radio {
@@ -38,10 +38,12 @@
 
 .sku-options__label {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
   align-items: start;
-  gap: 12px;
-  min-height: 76px;
+  gap: 8px;
+  height: 100%;
+  min-height: 100px;
   padding: 16px 16px 16px 46px;
   border: 1px solid rgba(20, 20, 46, .24);
   border-radius: 12px;
@@ -64,10 +66,9 @@
 
 .sku-options__identity { min-width: 0; }
 .sku-options__name { display: block; font-size: 15px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
-.sku-options__id { display: block; margin-top: 4px; color: var(--text, #3a3f4b); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
-.sku-options__price { font-size: 17px; font-weight: 800; line-height: 1.6; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sku-options__price { font-size: 17px; font-weight: 800; line-height: 1.6; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .sku-options__price .yen { font-size: 13px; }
-.sku-options__price .tax { display: block; color: var(--text, #3a3f4b); font-size: 11px; font-weight: 400; text-align: right; }
+.sku-options__price .tax { display: block; color: var(--text, #3a3f4b); font-size: 11px; font-weight: 400; text-align: left; }
 
 .sku-options__footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; }
 .sku-options__status { min-width: 0; color: var(--text, #3a3f4b); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
@@ -99,10 +100,12 @@
 .sku-specs__row dd { margin: 0; color: var(--heading, #14142e); overflow-wrap: anywhere; }
 
 @media (max-width: 480px) {
-  .sku-options__label { grid-template-columns: minmax(0, 1fr); gap: 8px; padding-right: 12px; }
-  .sku-options__name { font-size: 16px; }
-  .sku-options__price { white-space: normal; overflow-wrap: anywhere; }
-  .sku-options__price .tax { display: inline; margin-left: 4px; text-align: left; }
+  .sku-options__list { gap: 8px; }
+  .sku-options__label { padding: 12px 10px; }
+  .sku-options__radio { top: 14px; left: 10px; width: 16px; height: 16px; }
+  .sku-options__identity { padding-left: 24px; }
+  .sku-options__name { font-size: 14px; }
+  .sku-options__price { font-size: 16px; }
   .sku-options__footer { align-items: flex-start; flex-wrap: wrap; }
   .sku-options__reset { margin-left: auto; }
 }

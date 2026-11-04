@@ -89,7 +89,7 @@ front_check($radio->getAttribute('data-sku-name') === $hostile, 'SKU names must 
 front_check($radio->getAttribute('data-sku-price') === '1000', 'Prices must be integer data attributes.');
 front_check($dom->query('//label[@for="product-sku-0"]')->length === 1, 'Radio must have an associated label.');
 $label = $dom->query('//label[@for="product-sku-0"]')->item(0)->textContent;
-front_check(strpos($label, $hostile) !== false && strpos($label, 'SKU番号：A') !== false && strpos($label, '¥1,000') !== false && strpos($label, '税込') !== false, 'Labels must expose name, SKU ID and tax-inclusive price.');
+front_check(strpos($label, $hostile) !== false && strpos($label, 'SKU番号') === false && strpos($label, '¥1,000') !== false && strpos($label, '税込') !== false, 'Labels must show name and tax-inclusive price without SKU numbers.');
 front_check($dom->query('//script[contains(text(), "alert(")]')->length === 0, 'Hostile names must never become executable scripts.');
 front_check($dom->query('//script[contains(@src, "product-skus.js")]')->length === 1, 'Exactly one inquiry/SKU script must load.');
 front_check(strpos($html, 'function updateInquiry') === false, 'No second inline inquiry updater may overwrite the external one.');
