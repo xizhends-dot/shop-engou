@@ -8,6 +8,9 @@ if (!isset($config)) { $config = require __DIR__ . '/../config.php'; }
 if (!function_exists('shop_e')) { require_once __DIR__ . '/../lib/store.php'; }
 $active = $active ?? '';
 $page_title = $page_title ?? ($config['company_name_ja'] . ' SHOP');
+$catalog_search_query = isset($_GET['q']) && is_string($_GET['q']) ? trim($_GET['q']) : '';
+$catalog_stylesheet = __DIR__ . '/../storefront-content.css';
+$catalog_style_version = is_file($catalog_stylesheet) ? (string)filemtime($catalog_stylesheet) : '1';
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -25,6 +28,7 @@ $page_title = $page_title ?? ($config['company_name_ja'] . ' SHOP');
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;800&family=Noto+Sans+SC:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="storefront-content.css?v=<?= shop_e($catalog_style_version) ?>">
 </head>
 <body>
 
@@ -53,5 +57,26 @@ $page_title = $page_title ?? ($config['company_name_ja'] . ' SHOP');
     </div>
   </div>
 </nav>
+
+<div class="catalog-header-tools">
+  <div class="container">
+    <p class="catalog-utility-note">商品情報・税込価格をご覧いただけます</p>
+    <form class="catalog-search" action="list.php" method="get" role="search" aria-label="商品検索">
+      <label class="catalog-search-label" for="catalog-search-query">商品を探す</label>
+      <div class="catalog-search-control">
+        <input id="catalog-search-query" type="search" name="q" value="<?= shop_e($catalog_search_query) ?>" placeholder="商品名・商品番号を入力" aria-describedby="catalog-search-hint">
+        <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>検索</span></button>
+      </div>
+      <p class="catalog-search-hint" id="catalog-search-hint">商品名・商品番号の一部から検索できます。</p>
+    </form>
+    <nav class="catalog-content-nav" aria-label="商品選びのご案内">
+      <a href="index.php#categories">カテゴリーから探す</a>
+      <a href="index.php#featured">おすすめ商品</a>
+      <a href="index.php#shopping-guide">ご利用ガイド</a>
+      <a href="index.php#faq">よくあるご質問</a>
+      <a href="contact.php">商品について相談する</a>
+    </nav>
+  </div>
+</div>
 
 <main>

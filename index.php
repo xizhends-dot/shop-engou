@@ -65,12 +65,15 @@ function banner_caption($bt, $title, $subtitle, $btn1link) {
   <?php endif; ?>
 </section>
 
+<?php require __DIR__ . '/partials/home_categories.php'; ?>
+
 <!-- ============ おすすめ商品 ============ -->
 <section class="section" id="featured">
   <div class="container">
     <h2 class="section-title">おすすめ商品</h2>
     <p class="section-sub">人気・注目のアイテムをピックアップ</p>
 
+    <?php if (!$featured): ?><p class="empty-state">ただいま商品情報を準備しています。</p><?php endif; ?>
     <div class="product-grid">
       <?php foreach ($featured as $p) { include __DIR__ . '/partials/product_card.php'; } ?>
     </div>
@@ -80,6 +83,8 @@ function banner_caption($bt, $title, $subtitle, $btn1link) {
     </div>
   </div>
 </section>
+
+<?php require __DIR__ . '/partials/home_content.php'; ?>
 
 <script>
 (function () {

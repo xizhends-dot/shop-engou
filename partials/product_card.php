@@ -4,7 +4,7 @@
  * 期待する変数: $p（商品データ）, $cats（カテゴリ配列）
  */
 $thumb = !empty($p['images']) ? $p['images'][0] : '';
-$cat   = $cats[$p['category']] ?? null;
+$cardCategory = $cats[$p['category']] ?? null;
 ?>
 <article class="product-card" data-category="<?= htmlspecialchars($p['category']) ?>">
   <a href="product.php?id=<?= urlencode($p['id']) ?>" class="product-thumb <?= $thumb === '' ? 'placeholder' : '' ?>" <?= $thumb === '' ? 'style="' . shop_gradient_style($p['accent'] ?? '') . '"' : '' ?>>
@@ -16,8 +16,8 @@ $cat   = $cats[$p['category']] ?? null;
     <?php if (!empty($p['badge'])): ?>
     <span class="badge"><?= htmlspecialchars($p['badge']) ?></span>
     <?php endif; ?>
-    <?php if ($cat): ?>
-    <span class="product-cat-tag"><?= htmlspecialchars($cat['name']) ?></span>
+    <?php if ($cardCategory): ?>
+    <span class="product-cat-tag"><?= htmlspecialchars($cardCategory['name']) ?></span>
     <?php endif; ?>
   </a>
   <div class="product-body">
