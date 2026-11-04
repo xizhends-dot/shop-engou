@@ -89,7 +89,7 @@ require __DIR__ . '/partials/header.php';
         <?php if (!empty($product['reviews'])): ?><span class="d-rating-cnt">（<?= number_format((int)$product['reviews']) ?>件のレビュー）</span><?php endif; ?>
       </div>
       <?php endif; ?>
-      <div class="d-price"><?= yen($product['price']) ?></div>
+      <div class="d-price"><?= yen($product['price'], $product['price_max'] ?? null) ?></div>
 
       <?php if (!empty($product['attributes'])): ?>
       <div class="d-attrs" id="dAttrs">

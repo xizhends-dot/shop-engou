@@ -12,7 +12,7 @@ $editId  = isset($_GET['id']) ? (string)$_GET['id'] : '';
 $isEdit  = false;
 $current = [
     'id' => '', 'category' => array_key_first($cats), 'name' => '', 'tag' => '',
-    'price' => '', 'badge' => '', 'icon' => 'fa-box', 'accent' => '#DEF13F',
+    'price' => '', 'price_max' => '', 'badge' => '', 'icon' => 'fa-box', 'accent' => '#DEF13F',
     'desc' => '', 'images' => [], 'attributes' => [], 'rating' => '', 'reviews' => '',
 ];
 if ($editId !== '') {
@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'name'     => store_utf8_normalize(trim($_POST['name'] ?? '')),
         'tag'      => store_utf8_normalize(trim($_POST['tag'] ?? '')),
         'price'    => trim($_POST['price'] ?? ''),
+        'price_max' => trim($_POST['price_max'] ?? ''),
         'badge'    => store_utf8_normalize(trim($_POST['badge'] ?? '')),
         'icon'     => shop_sanitize_icon(store_utf8_normalize(trim($_POST['icon'] ?? '') ?: 'fa-box')),
         'accent'   => shop_sanitize_accent(trim($_POST['accent'] ?? '') ?: '#DEF13F'),
@@ -54,7 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!isset($cats[$in['category']])) { $errors[] = __('edit.err_cat'); }
     if ($in['name'] === '') { $errors[] = __('edit.err_name'); }
-    if ($in['price'] === '' || !is_numeric($in['price']) || (int)$in['price'] < 0) { $errors[] = __('edit.err_price'); }
+    if (!store_valid_price($in['price'])) { $errors[] = __('edit.err_price'); }
+    if ($in['price_max'] !== '' && (!store_valid_price($in['price_max']) || (float)$in['price_max'] < (float)$in['price'])) {
+        $errors[] = __('edit.err_price_max');
+    }
 
     if (empty($errors)) {
         // 画像: フロントで並べ替え・削除済みの順序つきリスト（images[]）
@@ -102,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'name'       => $in['name'],
             'tag'        => $in['tag'],
             'price'      => (int)$in['price'],
+            'price_max'  => $in['price_max'] === '' ? null : (int)$in['price_max'],
             'badge'      => $in['badge'],
             'desc'       => $in['desc'],
             'attributes' => $attributes,
@@ -177,9 +182,17 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
 
   <div class="adm-grid">
     <div class="adm-field">
-      <label><?= htmlspecialchars(__('edit.label_price')) ?><span class="req">*</span></label>
-      <input type="number" name="price" value="<?= htmlspecialchars((string)$current['price']) ?>" min="0" step="1" required>
+      <label for="price"><?= htmlspecialchars(__('edit.label_price')) ?><span class="req">*</span></label>
+      <input type="number" id="price" name="price" value="<?= htmlspecialchars((string)$current['price']) ?>" min="0" max="2147483647" step="1" required>
     </div>
+    <div class="adm-field">
+      <label for="price_max"><?= htmlspecialchars(__('edit.label_price_max')) ?></label>
+      <input type="number" id="price_max" name="price_max" value="<?= htmlspecialchars((string)($current['price_max'] ?? '')) ?>" min="0" max="2147483647" step="1" aria-describedby="price-max-hint">
+      <small id="price-max-hint"><?= htmlspecialchars(__('edit.hint_price_max')) ?></small>
+    </div>
+  </div>
+
+  <div class="adm-grid">
     <div class="adm-field">
       <label><?= htmlspecialchars(__('edit.label_badge')) ?></label>
       <input type="text" name="badge" value="<?= htmlspecialchars($current['badge']) ?>" placeholder="例: 人気No.1 / NEW">

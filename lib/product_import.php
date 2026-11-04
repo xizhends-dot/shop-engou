@@ -7,7 +7,7 @@ require_once __DIR__ . '/store.php';
 define('IMPORT_IMG_MAX', 20);
 
 function import_column_names() {
-    $cols = ['id', 'category', 'name', 'tag', 'price', 'badge', 'icon', 'accent', 'desc', 'rating', 'reviews'];
+    $cols = ['id', 'category', 'name', 'tag', 'price', 'price_max', 'badge', 'icon', 'accent', 'desc', 'rating', 'reviews'];
     for ($i = 1; $i <= IMPORT_IMG_MAX; $i++) {
         $cols[] = 'image' . $i;
     }
@@ -168,12 +168,26 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
             $rowErrors[] = "{$line}行目: 商品名が空です。";
             continue;
         }
-        if ($price === '' || !is_numeric($price)) {
-            $rowErrors[] = "{$line}行目: 価格が数値ではありません。";
+        if (!store_valid_price($price)) {
+            $rowErrors[] = "{$line}行目: 最低価格（price）は0〜2147483647の半角整数で指定してください。";
             continue;
         }
 
         $idx = store_find_index($data['products'], $id);
+        // 旧形式の列省略は既存値を維持し、列がある場合の空欄は最高価格を解除する。
+        $priceMax = ($idx >= 0) ? ($data['products'][$idx]['price_max'] ?? null) : null;
+        if (isset($map['price_max'])) {
+            $priceMaxRaw = $get($row, 'price_max');
+            if ($priceMaxRaw !== '' && !store_valid_price($priceMaxRaw)) {
+                $rowErrors[] = "{$line}行目: 最高価格（price_max）は0〜2147483647の半角整数で指定してください。";
+                continue;
+            }
+            $priceMax = ($priceMaxRaw === '') ? null : (int)$priceMaxRaw;
+        }
+        if ($priceMax !== null && (!store_valid_price($priceMax) || (int)$priceMax < (int)$price)) {
+            $rowErrors[] = "{$line}行目: 最高価格（price_max）は最低価格（price）以上にしてください。";
+            continue;
+        }
 
         $images = [];
         for ($ic = 1; $ic <= IMPORT_IMG_MAX; $ic++) {
@@ -209,6 +223,7 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
             'name'     => $name,
             'tag'      => $get($row, 'tag'),
             'price'    => (int)$price,
+            'price_max' => $priceMax,
             'badge'    => $get($row, 'badge'),
             'desc'     => $get($row, 'desc'),
             'rating'   => $rating,
@@ -247,6 +262,7 @@ function import_build_export_rows(array $products) {
             import_escape_cell($p['name']),
             import_escape_cell($p['tag'] ?? ''),
             import_escape_cell($p['price']),
+            import_escape_cell($p['price_max'] ?? ''),
             import_escape_cell($p['badge'] ?? ''),
             import_escape_cell($p['icon'] ?? 'fa-box'),
             import_escape_cell($p['accent'] ?? '#DEF13F'),
@@ -265,11 +281,11 @@ function import_sample_rows(array $cats) {
     $rows = import_build_export_rows([]);
     $rows = [$rows[0]];
     $rows[] = array_merge(
-        ['SAMPLE-001', $c1, 'サンプル商品（画像1枚）', 'キャッチコピー例', '4980', '人気No.1', 'fa-wand-magic-sparkles', '#DEF13F', '商品の詳細説明をここに記入します。', '4.5', '128'],
+        ['SAMPLE-001', $c1, 'サンプル商品（単一価格・画像1枚）', 'キャッチコピー例', '4980', '', '人気No.1', 'fa-wand-magic-sparkles', '#DEF13F', '商品の詳細説明をここに記入します。', '4.5', '128'],
         array_pad(['images/products/sample/main.jpg'], IMPORT_IMG_MAX, '')
     );
     $rows[] = array_merge(
-        ['SAMPLE-002', $c2, 'サンプル商品（複数画像）', '静音・大容量', '12800', 'NEW', 'fa-house-chimney', '#93c5fd', 'image1 がメイン画像、image2 以降は任意です。', '0', '0'],
+        ['SAMPLE-002', $c2, 'サンプル商品（価格帯・複数画像）', '静音・大容量', '12800', '19800', 'NEW', 'fa-house-chimney', '#93c5fd', 'image1 がメイン画像、image2 以降は任意です。', '0', '0'],
         array_pad(['images/products/sample/1.jpg', 'images/products/sample/2.jpg', 'images/products/sample/3.jpg'], IMPORT_IMG_MAX, '')
     );
     return $rows;

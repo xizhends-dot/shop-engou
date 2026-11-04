@@ -85,7 +85,7 @@ admin_head(__('page.products'));
       <td class="adm-col-id"><code><?= htmlspecialchars($p['id']) ?></code></td>
       <td class="adm-col-name"><span class="adm-name-text" title="<?= htmlspecialchars($p['name']) ?>"><?= htmlspecialchars($p['name']) ?></span></td>
       <td class="adm-col-cat"><span class="adm-cell-text"><?= htmlspecialchars($cat) ?></span></td>
-      <td class="adm-col-price">¥<?= number_format($p['price']) ?></td>
+      <td class="adm-col-price" style="white-space:normal;overflow-wrap:anywhere;"><?= htmlspecialchars(store_price_text($p)) ?></td>
       <td class="adm-col-actions adm-actions">
         <div class="adm-actions-inner">
           <a class="adm-btn adm-btn-sm" href="edit.php?id=<?= urlencode($p['id']) ?>"><i class="fa-solid fa-pen"></i> <?= htmlspecialchars(__('btn.edit')) ?></a>

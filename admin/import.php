@@ -129,7 +129,9 @@ admin_head(__('page.import'));
   <h3 style="font-size:15px;margin-bottom:14px;color:var(--heading);">2. ファイルをアップロード</h3>
   <p class="adm-note">
     商品番号（id）が既存と一致する行は<strong>更新</strong>、一致しない行は<strong>新規追加</strong>されます。<br>
-    1行目はヘッダー：<code>id, category, name, tag, price, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。<br>
+    1行目はヘッダー：<code>id, category, name, tag, price, price_max, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。<br>
+    <code>price</code> は最低価格（必須）、<code>price_max</code> は最高価格（任意）です。価格は0〜2147483647の半角整数で、最高価格は最低価格以上にしてください。<br>
+    <code>price_max</code> 列の空欄は最高価格を解除し、単一価格になります。旧ファイルなどで列自体がない場合、既存商品の最高価格は維持され、新規商品は単一価格になります。維持する最高価格を最低価格が超える行は取り込めません。<br>
     <code>category</code> はキー（<?= htmlspecialchars(implode(' / ', array_keys($cats))) ?>）または名称。<br>
     画像は <code>image1</code>（メイン）〜 <code>image20</code>。空欄の列は既存画像を維持します。
   </p>

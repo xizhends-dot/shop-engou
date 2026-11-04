@@ -21,8 +21,29 @@ define('FEATURED_MAX', 12);                                 // おすすめ最�
 define('BANNER_MAX', 5);                                    // バナー登録上限（枚）
 
 /** 価格表示ヘルパー（全ページ共通） */
-function yen($n) {
-    return '<span class="yen">¥</span>' . number_format((int)$n) . '<span class="tax">（税込）</span>';
+function yen($n, $max = null) {
+    $html = '<span class="yen">¥</span>' . number_format((int)$n);
+    if ($max !== null && $max !== '' && (int)$max >= (int)$n) {
+        $html .= ' ～ <wbr><span class="yen">¥</span>' . number_format((int)$max);
+    }
+    return $html . '<span class="tax">（税込）</span>';
+}
+
+/** 管理画面用の価格（税表記なし） */
+function store_price_text(array $product) {
+    $text = '¥' . number_format((int)$product['price']);
+    $max = $product['price_max'] ?? null;
+    if ($max !== null && $max !== '' && (int)$max >= (int)$product['price']) {
+        $text .= ' ～ ¥' . number_format((int)$max);
+    }
+    return $text;
+}
+
+/** MySQL INT と共通の範囲で整数価格を検証する。 */
+function store_valid_price($value) {
+    return (is_string($value) || is_int($value))
+        && preg_match('/\A[0-9]+\z/', (string)$value) === 1
+        && (float)$value <= 2147483647;
 }
 
 /** 5段階の星を HTML で出力（小数は半星） */
@@ -314,6 +335,7 @@ function store_load_mysql() {
             'name'       => $r['name'],
             'tag'        => $r['tag'],
             'price'      => (int)$r['price'],
+            'price_max'  => isset($r['price_max']) ? (int)$r['price_max'] : null,
             'badge'      => $r['badge'],
             'desc'       => $r['description'],
             'attributes' => is_array($attrs) ? $attrs : [],
@@ -329,6 +351,15 @@ function store_save_mysql($data) {
     try {
         $data = store_normalize_data_for_db($data);
         $pdo = db_connect();
+        // DDL は暗黙 COMMIT を起こすため、データ更新トランザクションより前に実行する。
+        if (!$pdo->query("SHOW COLUMNS FROM products LIKE 'price_max'")->fetch()) {
+            try {
+                $pdo->exec('ALTER TABLE products ADD COLUMN price_max INT NULL DEFAULT NULL AFTER price');
+            } catch (PDOException $e) {
+                // 同時保存で別リクエストが追加済みの場合のみ続行する。
+                if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; }
+            }
+        }
         $pdo->beginTransaction();
 
         $cs = $pdo->prepare(
@@ -341,10 +372,10 @@ function store_save_mysql($data) {
         }
 
         $ps = $pdo->prepare(
-            'INSERT INTO products (id, category, icon, accent, name, tag, price, badge, description, attributes, rating, reviews, sort)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO products (id, category, icon, accent, name, tag, price, price_max, badge, description, attributes, rating, reviews, sort)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE category=VALUES(category), icon=VALUES(icon), accent=VALUES(accent),
-             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), badge=VALUES(badge),
+             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), price_max=VALUES(price_max), badge=VALUES(badge),
              description=VALUES(description), attributes=VALUES(attributes),
              rating=VALUES(rating), reviews=VALUES(reviews), sort=VALUES(sort)'
         );
@@ -357,7 +388,7 @@ function store_save_mysql($data) {
             $attrsJson = json_encode($p['attributes'] ?? [], JSON_UNESCAPED_UNICODE);
             $ps->execute([
                 $p['id'], $p['category'], shop_sanitize_icon($p['icon'] ?? 'fa-box'), shop_sanitize_accent($p['accent'] ?? '#DEF13F'),
-                $p['name'], $p['tag'] ?? '', (int)$p['price'], $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
+                $p['name'], $p['tag'] ?? '', (int)$p['price'], isset($p['price_max']) && $p['price_max'] !== '' ? (int)$p['price_max'] : null, $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
                 (float)($p['rating'] ?? 0), (int)($p['reviews'] ?? 0), $pi++,
             ]);
             $delImg->execute([$p['id']]);

@@ -165,7 +165,7 @@ admin_head(__('page.console'));
         <td class="adm-col-id"><code><?= htmlspecialchars($p['id']) ?></code></td>
         <td class="adm-col-name"><?= htmlspecialchars($p['name']) ?></td>
         <td class="adm-col-cat"><?= htmlspecialchars($cat) ?></td>
-        <td class="adm-col-price">¥<?= number_format($p['price']) ?></td>
+        <td class="adm-col-price" style="white-space:normal;overflow-wrap:anywhere;"><?= htmlspecialchars(store_price_text($p)) ?></td>
         <td class="adm-col-actions">
           <a class="adm-btn adm-btn-sm" href="edit.php?id=<?= urlencode($p['id']) ?>"><i class="fa-solid fa-pen"></i> <?= htmlspecialchars(__('btn.edit')) ?></a>
         </td>

@@ -30,7 +30,7 @@ $cat   = $cats[$p['category']] ?? null;
     </div>
     <?php endif; ?>
     <div class="product-foot">
-      <span class="price"><?= yen($p['price']) ?></span>
+      <span class="price"><?= yen($p['price'], $p['price_max'] ?? null) ?></span>
       <a href="product.php?id=<?= urlencode($p['id']) ?>" class="btn-detail">詳細を見る</a>
     </div>
   </div>
