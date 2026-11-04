@@ -14,14 +14,26 @@ $_SESSION['csrf'] = 'test-csrf';
 $_SESSION['admin_lang'] = 'zh';
 $sessionFile = $fixtureRoot . '/sess_' . session_id();
 $skus = [['id' => 'A', 'name' => 'ホワイト / S', 'price' => 1000], ['id' => 'B', 'name' => 'ブラック / L', 'price' => 1500]];
+$groups = [['name' => 'カラー', 'options' => ['RED', 'BLUE']], ['name' => 'サイズ', 'options' => ['S', 'M']]];
+if ($case === 'render-groups') { $skus[0]['options'] = ['RED', 'S']; $skus[1]['options'] = ['BLUE', 'M']; }
 $original = ['id' => 'SKU-TEST', 'name' => 'Test', 'category' => 'beauty', 'price' => 1000, 'price_max' => 1500, 'skus' => $skus, 'images' => [], 'attributes' => []];
+if ($case === 'render-groups') { $original['sku_groups'] = $groups; }
 $fixture = ['categories' => ['beauty' => ['name' => 'Test', 'icon' => 'fa-box']], 'products' => [$original]];
 file_put_contents(STORE_FILE, json_encode($fixture));
 $_GET = ['id' => 'SKU-TEST'];
 $_SERVER['SCRIPT_NAME'] = '/admin/edit.php';
 $_SERVER['REQUEST_URI'] = '/admin/edit.php?id=SKU-TEST';
-$_SERVER['REQUEST_METHOD'] = $case === 'render' ? 'GET' : 'POST';
+$_SERVER['REQUEST_METHOD'] = in_array($case, ['render', 'render-groups'], true) ? 'GET' : 'POST';
 $_POST = ['csrf' => 'test-csrf', 'edit_id' => 'SKU-TEST', 'id' => 'SKU-TEST', 'name' => 'Changed', 'category' => 'beauty', 'price' => '', 'price_max' => '', 'skus' => $skus];
+if (in_array($case, ['groups','group-duplicate','group-missing','group-empty','group-invalid'], true)) {
+    $_POST['sku_groups'] = [['name' => 'カラー', 'options_text' => 'RED, BLUE'], ['name' => 'サイズ', 'options_text' => "S\nM"]];
+    $_POST['skus'][0]['options'] = ['RED', 'S']; $_POST['skus'][1]['options'] = ['BLUE', 'M'];
+    $_POST['skus'][0]['name'] = '';
+}
+if ($case === 'group-duplicate') { $_POST['skus'][1]['options'] = ['RED', 'S']; }
+if ($case === 'group-missing') { $_POST['skus'][0]['options'] = ['RED']; }
+if ($case === 'group-empty') { $_POST['skus'] = []; }
+if ($case === 'group-invalid') { $_POST['sku_groups'][0]['options_text'] = ['bad']; }
 if ($case === 'gap') { unset($_POST['skus'][0]); }
 if ($case === 'duplicate') { $_POST['skus'][1]['id'] = 'a'; }
 if ($case === 'invalid') { $_POST['skus'][0]['price'] = '-1'; }
@@ -39,7 +51,8 @@ register_shutdown_function(function () use ($case, $fixtureRoot, $sessionFile, $
     elseif ($case === 'gap') { $passed = count($saved['skus']) === 1 && $saved['skus'][0]['id'] === 'B' && $saved['price'] === 1500 && $saved['price_max'] === null; }
     elseif ($case === 'remove') { $passed = $saved['skus'] === [] && $saved['price'] === 2000 && $saved['price_max'] === null; }
     elseif ($case === 'zero') { $passed = count($saved['skus']) === 2 && $saved['price'] === 0 && $saved['price_max'] === null; }
-    elseif ($case !== 'render') { $passed = $saved === $original && strpos($html, 'adm-flash-err') !== false && strpos($html, 'id="skuRows"') !== false; }
+    elseif ($case === 'groups') { $passed = count($saved['sku_groups']) === 2 && $saved['skus'][0]['name'] === 'RED / S' && $saved['skus'][1]['options'] === ['BLUE', 'M'] && $saved['price'] === 1000 && $saved['price_max'] === 1500; }
+    elseif (!in_array($case, ['render', 'render-groups'], true)) { $passed = $saved === $original && strpos($html, 'adm-flash-err') !== false && strpos($html, 'id="skuRows"') !== false; }
     session_write_close();
     // 既知の隔離ファイルのみ削除する。
     foreach ([$sessionFile, STORE_FILE, $fixtureRoot . '/config.php'] as $file) {
@@ -47,7 +60,7 @@ register_shutdown_function(function () use ($case, $fixtureRoot, $sessionFile, $
     }
     rmdir($fixtureRoot . '/data'); rmdir($fixtureRoot . '/images/products'); rmdir($fixtureRoot . '/images'); rmdir($fixtureRoot);
     if (!$passed) { fwrite(STDERR, 'FAIL: admin SKU ' . $case . "\n"); exit(1); }
-    if ($case === 'render') {
+    if (in_array($case, ['render', 'render-groups'], true)) {
         $base = 'file:///' . str_replace('\\', '/', dirname(__DIR__)) . '/admin/';
         echo str_replace('<head>', '<head><base href="' . htmlspecialchars($base) . '">', $html);
     } else { echo 'PASS: admin SKU ' . $case . "\n"; }

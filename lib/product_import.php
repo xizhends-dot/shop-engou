@@ -7,7 +7,7 @@ require_once __DIR__ . '/store.php';
 define('IMPORT_IMG_MAX', 20);
 
 function import_column_names() {
-    $cols = ['id', 'category', 'name', 'tag', 'price', 'price_max', 'skus', 'badge', 'icon', 'accent', 'desc', 'rating', 'reviews'];
+    $cols = ['id', 'category', 'name', 'tag', 'price', 'price_max', 'skus', 'sku_groups', 'badge', 'icon', 'accent', 'desc', 'rating', 'reviews'];
     for ($i = 1; $i <= IMPORT_IMG_MAX; $i++) {
         $cols[] = 'image' . $i;
     }
@@ -172,25 +172,32 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
             continue;
         }
         $idx = store_find_index($data['products'], $id);
-        $skus = $idx >= 0 ? store_product_skus($data['products'][$idx]) : [];
+        // 省略列は既存値を保つ。両列の最終状態を検証してから画像を処理する。
+        $existing = $idx >= 0 ? $data['products'][$idx] : [];
+        $groupsInput = array_key_exists('sku_groups', $existing) ? $existing['sku_groups'] : [];
+        if (isset($map['sku_groups'])) {
+            $groupsRaw = $get($row, 'sku_groups');
+            $groupsInput = $groupsRaw === '' ? [] : store_sku_decode_json_rows($groupsRaw);
+        }
+        $skuError = '';
+        $groups = store_parse_sku_groups($groupsInput, $skuError);
+        if ($groups === false) {
+            $rowErrors[] = "{$line}行目: SKU グループ（sku_groups）の JSON または値が不正です（" . ($skuError ?: 'format') . '）。';
+            continue;
+        }
+        $skusInput = array_key_exists('skus', $existing) ? $existing['skus'] : [];
         if (isset($map['skus'])) {
             $skusRaw = $get($row, 'skus');
-            if ($skusRaw === '') {
-                $skus = [];
-            } else {
-                $document = json_decode($skusRaw);
-                $decoded = is_array($document) ? json_decode($skusRaw, true) : null;
-                $skuError = '';
-                $skus = store_parse_skus($decoded, $skuError);
-                if ($skus === false) {
-                    $rowErrors[] = "{$line}行目: SKU（skus）の JSON または値が不正です（" . ($skuError ?: 'format') . '）。';
-                    continue;
-                }
-            }
+            $skusInput = $skusRaw === '' ? [] : store_sku_decode_json_rows($skusRaw);
+        }
+        $skus = store_parse_skus($skusInput, $skuError, $groups);
+        if ($skus === false || ($groups && !$skus)) {
+            $rowErrors[] = "{$line}行目: SKU（skus）の JSON または値が不正です（" . ($skus === false ? ($skuError ?: 'format') : 'group_skus') . '）。';
+            continue;
         }
         // SKU があれば price / price_max のセルは参照せず、各 SKU の価格から算出する。
         if ($skus) {
-            $skuPrices = store_product_prices(['skus' => $skus]);
+            $skuPrices = store_product_prices(['skus' => $skus, 'sku_groups' => $groups]);
             $price = $skuPrices['price'];
             $priceMax = $skuPrices['price_max'];
         } else {
@@ -284,6 +291,7 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
             'price'    => (int)$price,
             'price_max' => $priceMax,
             'skus'     => $skus,
+            'sku_groups' => $groups,
             'badge'    => $get($row, 'badge'),
             'desc'     => $get($row, 'desc'),
             'rating'   => $rating,
@@ -324,6 +332,7 @@ function import_build_export_rows(array $products) {
             import_escape_cell($p['price']),
             import_escape_cell($p['price_max'] ?? ''),
             import_escape_cell(json_encode(store_product_skus($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            import_escape_cell(json_encode(store_product_sku_groups($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
             import_escape_cell($p['badge'] ?? ''),
             import_escape_cell($p['icon'] ?? 'fa-box'),
             import_escape_cell($p['accent'] ?? '#DEF13F'),
@@ -342,11 +351,11 @@ function import_sample_rows(array $cats) {
     $rows = import_build_export_rows([]);
     $rows = [$rows[0]];
     $rows[] = array_merge(
-        ['SAMPLE-001', $c1, 'サンプル商品（単一価格・画像1枚）', 'キャッチコピー例', '4980', '', '[]', '人気No.1', 'fa-wand-magic-sparkles', '#DEF13F', '商品の詳細説明をここに記入します。', '4.5', '128'],
+        ['SAMPLE-001', $c1, 'サンプル商品（単一価格・画像1枚）', 'キャッチコピー例', '4980', '', '[]', '[]', '人気No.1', 'fa-wand-magic-sparkles', '#DEF13F', '商品の詳細説明をここに記入します。', '4.5', '128'],
         array_pad(['images/products/sample/main.jpg'], IMPORT_IMG_MAX, '')
     );
     $rows[] = array_merge(
-        ['SAMPLE-002', $c2, 'サンプル商品（価格帯・複数画像）', '静音・大容量', '12800', '19800', '[]', 'NEW', 'fa-house-chimney', '#93c5fd', 'image1 がメイン画像、image2 以降は任意です。', '0', '0'],
+        ['SAMPLE-002', $c2, 'サンプル商品（価格帯・複数画像）', '静音・大容量', '12800', '19800', '[]', '[]', 'NEW', 'fa-house-chimney', '#93c5fd', 'image1 がメイン画像、image2 以降は任意です。', '0', '0'],
         array_pad(['images/products/sample/1.jpg', 'images/products/sample/2.jpg', 'images/products/sample/3.jpg'], IMPORT_IMG_MAX, '')
     );
     return $rows;

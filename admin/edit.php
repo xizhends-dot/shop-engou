@@ -13,7 +13,7 @@ $isEdit  = false;
 $current = [
     'id' => '', 'category' => array_key_first($cats), 'name' => '', 'tag' => '',
     'price' => '', 'price_max' => '', 'badge' => '', 'icon' => 'fa-box', 'accent' => '#DEF13F',
-    'desc' => '', 'images' => [], 'attributes' => [], 'skus' => [], 'rating' => '', 'reviews' => '',
+    'desc' => '', 'images' => [], 'attributes' => [], 'skus' => [], 'sku_groups' => [], 'rating' => '', 'reviews' => '',
 ];
 if ($editId !== '') {
     $idx = store_find_index($data['products'], $editId);
@@ -56,9 +56,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($cats[$in['category']])) { $errors[] = __('edit.err_cat'); }
     if ($in['name'] === '') { $errors[] = __('edit.err_name'); }
     // SKU入力を検証。エラーの場合も編集行を保持する。
+    $groupError = null;
+    $postedGroups = $_POST['sku_groups'] ?? [];
+    $groupInput = [];
+    $current['sku_groups'] = [];
+    if (is_array($postedGroups)) {
+        foreach ($postedGroups as $row) {
+            if (!is_array($row) || !is_string($row['name'] ?? null) || !is_string($row['options_text'] ?? null)) {
+                $groupInput = false;
+                break;
+            }
+            $options = array_values(array_filter(array_map('trim', preg_split('/[\r\n,，、]+/u', $row['options_text']) ?: []), function ($v) { return $v !== ''; }));
+            $groupInput[] = ['name' => trim($row['name']), 'options' => $options];
+            if (count($current['sku_groups']) < 3) { $current['sku_groups'][] = ['name' => $row['name'], 'options' => $options]; }
+        }
+    } else { $groupInput = false; }
+    $skuGroups = store_parse_sku_groups($groupInput, $groupError);
+    if ($skuGroups === false) { $errors[] = __('sku.groups_invalid'); }
     $skuError = null;
     $postedSkus = $_POST['skus'] ?? [];
-    $skus = store_parse_skus($postedSkus, $skuError);
+    $skus = $skuGroups === false ? false : store_parse_skus($postedSkus, $skuError, $skuGroups);
     $current['skus'] = [];
     if (is_array($postedSkus)) {
         foreach (array_slice($postedSkus, 0, 100) as $row) {
@@ -67,13 +84,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach (['id', 'name', 'price'] as $key) {
                 $safeRow[$key] = isset($row[$key]) && is_scalar($row[$key]) ? (string)$row[$key] : '';
             }
+            if (isset($row['options']) && is_array($row['options'])) {
+                $safeRow['options'] = array_map(function ($value) { return is_scalar($value) ? (string)$value : ''; }, array_slice(array_values($row['options']), 0, 3));
+            }
             $current['skus'][] = $safeRow;
         }
     }
     if ($skus === false) {
-        $errors[] = __('sku.err_' . $skuError);
+        if ($skuGroups !== false) { $errors[] = __('sku.err_' . $skuError); }
+    } elseif ($skuGroups && !$skus) {
+        $errors[] = __('sku.err_group_skus');
     } elseif ($skus) {
-        $range = store_product_prices(['skus' => $skus]);
+        $range = store_product_prices(['skus' => $skus, 'sku_groups' => $skuGroups]);
         $in['price'] = (string)$range['price'];
         $in['price_max'] = $range['price_max'] === null ? '' : (string)$range['price_max'];
     } else {
@@ -134,6 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'desc'       => $in['desc'],
             'attributes' => $attributes,
             'skus'       => $skus,
+            'sku_groups' => $skuGroups,
             'rating'     => max(0, min(5, (float)$in['rating'])),
             'reviews'    => max(0, (int)$in['reviews']),
         ];
@@ -161,6 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $skuRows = !empty($current['skus']) && is_array($current['skus']) ? $current['skus'] : [];
+$skuGroupRows = isset($current['sku_groups']) && is_array($current['sku_groups']) ? $current['sku_groups'] : [];
 $hasSkus = !empty(store_product_skus($current));
 $token = csrf_token();
 admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));

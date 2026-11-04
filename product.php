@@ -22,6 +22,7 @@ $pIcon = shop_sanitize_icon($product['icon'] ?? 'fa-box');
 $pAccent = shop_sanitize_accent($product['accent'] ?? '#DEF13F');
 $imgs = store_filter_product_image_paths($product['images'] ?? []);
 $skus = store_product_skus($product);
+$skuGroups = $skus ? store_product_sku_groups($product) : [];
 $productPrices = store_product_prices($product);
 $inquirySubject = '【商品お問い合わせ】' . $product['name'] . '（商品番号: ' . $product['id'] . '）';
 $inquiryBody = '商品名：' . $product['name'] . "\n商品番号：" . $product['id'] . "\n\nお問い合わせ内容：\n";
@@ -102,7 +103,22 @@ require __DIR__ . '/partials/header.php';
       <?php if ($skus): ?>
       <fieldset class="sku-options" id="skuOptions" aria-describedby="skuHelp">
         <legend class="sku-options__legend">仕様を選ぶ</legend>
-        <p class="sku-options__help" id="skuHelp">仕様を選択すると、価格とお問い合わせ内容に反映されます。</p>
+        <p class="sku-options__help" id="skuHelp"><?= $skuGroups ? '各項目を選ぶと組み合わせの価格が表示されます。選択中のボタンをもう一度押すと解除できます。選べない場合は、ほかの項目を解除してから変更してください。' : '仕様を選択すると、価格とお問い合わせ内容に反映されます。' ?></p>
+        <?php if ($skuGroups): ?>
+        <div class="sku-groups">
+          <?php foreach ($skuGroups as $groupIndex => $group): ?>
+          <fieldset class="sku-group" data-group-index="<?= (int) $groupIndex ?>">
+            <legend class="sku-group__legend"><?= shop_e($group['name']) ?></legend>
+            <div class="sku-group__list">
+              <?php foreach ($group['options'] as $optionIndex => $option): ?>
+              <button type="button" class="sku-group__option" data-group-index="<?= (int) $groupIndex ?>" data-option-index="<?= (int) $optionIndex ?>" aria-pressed="false"><?= shop_e($option) ?></button>
+              <?php endforeach; ?>
+            </div>
+          </fieldset>
+          <?php endforeach; ?>
+        </div>
+        <script type="application/json" id="skuData"><?= json_encode(['groups' => $skuGroups, 'skus' => $skus], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+        <?php else: ?>
         <div class="sku-options__list">
           <?php foreach ($skus as $skuIndex => $sku): ?>
           <div class="sku-options__item">
@@ -116,8 +132,9 @@ require __DIR__ . '/partials/header.php';
           </div>
           <?php endforeach; ?>
         </div>
+        <?php endif; ?>
         <div class="sku-options__footer">
-          <p class="sku-options__status" id="skuStatus">未選択・すべての仕様の価格を表示</p>
+          <p class="sku-options__status" id="skuStatus" role="status" aria-live="polite" aria-atomic="true"><?= $skuGroups ? '未選択・すべての組み合わせの価格を表示。各項目を選択してください。' : '未選択・すべての仕様の価格を表示' ?></p>
           <button class="sku-options__reset" id="skuReset" type="button" aria-controls="skuOptions productPrice" aria-disabled="true">選択をクリア</button>
         </div>
       </fieldset>

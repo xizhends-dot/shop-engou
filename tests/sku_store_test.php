@@ -83,7 +83,8 @@ try {
     $saved = json_decode(file_get_contents(STORE_FILE), true)['products'][0];
     verify_sku($saved['price'] === 1000 && $saved['price_max'] === 2000 && $saved['skus'] === $parsed, 'JSON writes normalized SKU-derived prices');
     $loaded = store_load_json()['products'][0];
-    verify_sku($loaded['skus'] === $parsed && $loaded['price'] === 1000, 'JSON reads normalized SKUs');
+    verify_sku($loaded['skus'] === $parsed && $loaded['price'] === 1000 && $loaded['sku_groups'] === [], 'JSON reads normalized legacy SKUs with no groups');
+    verify_sku(array_keys($loaded['skus'][0]) === ['id', 'name', 'price'], 'legacy SKU output structure stays unchanged');
     $invalid = $original;
     $invalid['skus'] = [['id' => 'A', 'name' => 'X', 'price' => ['invalid']]];
     verify_sku(!store_save_json(['categories' => $cats, 'products' => [$invalid]]) && strpos(store_last_error(), 'format') !== false, 'JSON rejects invalid SKU without overwriting data');

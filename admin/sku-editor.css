@@ -6,15 +6,24 @@
 .adm-sku-row { display: grid; grid-template-columns: minmax(100px, .85fr) minmax(130px, 1.6fr) minmax(110px, 1fr) auto; gap: 12px; align-items: end; padding: 16px 0; border-top: 1px solid #e1e6d8; }
 .adm-sku-field { min-width: 0; }
 .adm-sku-field label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 7px; }
-.adm-sku-field input { width: 100%; min-width: 0; padding: 10px 12px; height: 44px; border: 1px solid #c8cfbb; border-radius: 7px; font: inherit; font-size: 14px; background: #fff; }
-.adm-sku-field input:focus { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.adm-sku-field input, .adm-sku-field select, .adm-sku-field textarea { width: 100%; min-width: 0; padding: 10px 12px; height: 44px; border: 1px solid #c8cfbb; border-radius: 7px; font: inherit; font-size: 14px; background: #fff; }
+.adm-sku-field input:focus, .adm-sku-field select:focus, .adm-sku-field textarea:focus { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .adm-sku-row .adm-sku-remove { min-height: 44px; color: #9d3036; border-color: #e1c9ca; }
 .adm-sku-status { margin-top: 12px; font-size: 12px; color: #8d4a13; }
+.adm-sku-groups { border-bottom: 1px solid #d7dec5; padding-bottom: 18px; margin-bottom: 22px; }
+.adm-sku-groups h4 { margin-bottom: 8px; }
+.adm-sku-group-row { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(160px, 2fr) auto; gap: 12px; align-items: end; margin-bottom: 14px; }
+.adm-sku-field textarea { height: 64px; resize: vertical; }
+.adm-sku-options { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.adm-sku-options[hidden] { display: none; }
 #price[readonly], #price_max[readonly] { background: #f2f4ed; color: #4b5d31; }
 @media (max-width: 720px) {
   .adm-sku-editor { padding: 16px; }
+  .adm-sku-heading { flex-wrap: wrap; }
+  .adm-sku-group-row { grid-template-columns: minmax(0, 1fr); }
+  .adm-sku-group-row > button { justify-self: end; }
   .adm-sku-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .adm-sku-field:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
   .adm-sku-row .adm-sku-remove { grid-column: 1 / -1; justify-self: end; }
-  .adm-sku-field input { font-size: 16px; }
+  .adm-sku-field input, .adm-sku-field select, .adm-sku-field textarea { font-size: 16px; }
 }

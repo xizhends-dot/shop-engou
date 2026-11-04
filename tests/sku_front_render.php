@@ -126,4 +126,72 @@ foreach ([0, 2147483647] as $amount) {
     front_check($boundary->query('//*[@id="product-sku-0"]')->item(0)->getAttribute('data-sku-price') === (string)$amount, 'Boundary prices must stay exact.');
 }
 
-echo "SKU frontend rendering: all assertions passed.\n";
+// 実 helper とテンプレートを使い、色・サイズの疎な組み合わせを描画する。
+$grouped = $base;
+$grouped['sku_groups'] = [
+    ['name' => 'カラー', 'options' => ['RED', 'BLUE', 'BLACK']],
+    ['name' => 'サイズ', 'options' => ['S', 'M', 'L']],
+];
+$grouped['skus'] = [
+    ['id' => 'private-red-s-001', 'name' => 'RED / S', 'price' => 1000, 'options' => ['RED', 'S']],
+    ['id' => 'private-red-m-002', 'name' => 'RED / M', 'price' => 1200, 'options' => ['RED', 'M']],
+    ['id' => 'private-blue-m-003', 'name' => 'BLUE / M', 'price' => 1500, 'options' => ['BLUE', 'M']],
+    ['id' => 'private-black-l-004', 'name' => 'BLACK / L', 'price' => 2000, 'options' => ['BLACK', 'L']],
+];
+$fixture['data']['products'] = [$grouped];
+$groupHtml = front_render_product($fixture);
+$groupDom = front_document($groupHtml);
+front_check(strpos($groupDom->query('//*[@id="productPrice"]')->item(0)->textContent, '¥1,000 ～ ¥2,000') !== false, 'Grouped prices must come from actual combinations.');
+front_check($groupDom->query('//*[@id="skuOptions"]//fieldset')->length === 2, 'Each group needs its own fieldset.');
+front_check($groupDom->query('//*[@id="skuOptions"]//fieldset/legend')->item(0)->textContent === 'カラー', 'First legend must be the color group name.');
+front_check($groupDom->query('//*[@id="skuOptions"]//fieldset/legend')->item(1)->textContent === 'サイズ', 'Second legend must be the size group name.');
+front_check($groupDom->query('//*[@id="skuOptions"]//button[@data-group-index][@data-option-index][@type="button"][@aria-pressed="false"]')->length === 6, 'Every option needs an initially unpressed native button.');
+front_check($groupDom->query('//*[@id="skuOptions"]//input[@name="product_sku"]')->length === 0, 'Grouped controls must not mix with flat radios.');
+front_check($groupDom->query('//*[@id="dAttrs"]')->length === 0, 'Grouped SKUs must not mix with independent attribute controls.');
+front_check($groupDom->query('//*[@id="skuOptions"]//*[contains(@class, "sku-options__price")]')->length === 0, 'Group option buttons must not repeat per-SKU prices.');
+front_check($groupDom->query('//*[@id="skuStatus"][@role="status"][@aria-live="polite"]')->length === 1, 'Selection instructions need an accessible live status.');
+front_check(strpos($groupDom->query('//*[@id="skuHelp"]')->item(0)->textContent, '解除してから変更') !== false, 'Help must explain how to unlock unavailable combinations.');
+front_check($groupDom->query('//*[@id="skuReset"][@type="button"]')->length === 1, 'Grouped selections need a whole-selection reset.');
+$groupJson = $groupDom->query('//script[@id="skuData"][@type="application/json"]');
+front_check($groupJson->length === 1, 'Grouped data must use one non-executable JSON script.');
+$decoded = json_decode($groupJson->item(0)->textContent, true);
+front_check($decoded === ['groups' => $grouped['sku_groups'], 'skus' => $grouped['skus']], 'JSON must preserve group order and complete SKU options.');
+$visible = '';
+foreach ($groupDom->query('//body//text()[not(ancestor::script) and not(ancestor::style)]') as $textNode) {
+    $visible .= $textNode->textContent;
+}
+foreach ($grouped['skus'] as $groupSku) {
+    front_check(strpos($visible, $groupSku['id']) === false, 'Internal SKU IDs must never appear as visible page text.');
+}
+front_check(strpos($visible, 'SKU番号') === false, 'The page must not label any SKU number.');
+parse_str(parse_url($groupDom->query('//*[@id="inquiryBtn"]')->item(0)->getAttribute('href'), PHP_URL_QUERY), $groupMail);
+front_check(strpos($groupMail['body'], 'SKU番号') === false, 'Initial grouped inquiry must not claim a SKU.');
+
+// </script>、引用符、HTMLがグループ名・選択肢・SKU名に含まれても構造を壊さない。
+$grouped['sku_groups'] = [
+    ['name' => '色 </script> & "引用"', 'options' => [$hostile, 'BLACK']],
+    ['name' => 'サイズ', 'options' => ['S', 'M']],
+];
+$grouped['skus'] = [
+    ['id' => 'safe-001', 'name' => $hostile, 'price' => 0, 'options' => [$hostile, 'S']],
+    ['id' => 'safe-002', 'name' => 'BLACK / M', 'price' => 2147483647, 'options' => ['BLACK', 'M']],
+];
+$fixture['data']['products'] = [$grouped];
+$safeHtml = front_render_product($fixture);
+$safeDom = front_document($safeHtml);
+$safeJson = $safeDom->query('//script[@id="skuData"]')->item(0)->textContent;
+front_check(strpos($safeJson, '<') === false && strpos($safeJson, '>') === false && strpos($safeJson, '&') === false, 'JSON data must hex-escape HTML metacharacters.');
+front_check(strpos($safeJson, '\u0022') !== false && strpos($safeJson, '\u0027') !== false, 'JSON data must hex-escape both quote types.');
+front_check(json_decode($safeJson, true) === ['groups' => $grouped['sku_groups'], 'skus' => $grouped['skus']], 'Hostile group and option text must round-trip through JSON.');
+front_check($safeDom->query('//button[@data-group-index="0"][@data-option-index="0"]')->item(0)->textContent === $hostile, 'Option text must render literally.');
+front_check($safeDom->query('//script[not(@type="application/json")][contains(text(), "alert(")]')->length === 0, 'Hostile option text must never become executable JavaScript.');
+front_check($safeDom->query('//button[@data-option-index]//script | //button[@data-option-index]//b')->length === 0, 'Option text must never become nested HTML.');
+front_check(strpos($safeDom->query('//*[@id="productPrice"]')->item(0)->textContent, '¥0 ～ ¥2,147,483,647') !== false, 'Grouped boundary prices must remain exact.');
+
+$grouped['skus'][0]['options'] = ['UNKNOWN', 'S'];
+$fixture['data']['products'] = [$grouped];
+$invalidGroups = front_document(front_render_product($fixture));
+front_check($invalidGroups->query('//*[@id="skuOptions"]')->length === 0, 'Invalid combinations must fall back without broken group controls.');
+front_check($invalidGroups->query('//*[@id="dAttrs"]//button')->length === 4, 'Safe fallback must preserve legacy attribute behavior.');
+
+echo "SKU frontend rendering: all flat, grouped and legacy assertions passed.\n";

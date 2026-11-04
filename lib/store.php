@@ -129,9 +129,18 @@ function store_prepare_products_for_save(&$data) {
             return false;
         }
         $error = '';
-        $skus = store_parse_skus($product['skus'] ?? [], $error);
-        if ($skus === false || (array_key_exists('skus', $product) && !is_array($product['skus']))) {
+        $groups = store_parse_sku_groups(array_key_exists('sku_groups', $product) ? $product['sku_groups'] : [], $error);
+        if ($groups === false) {
+            store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU グループが不正です: ' . ($error ?: 'format'));
+            return false;
+        }
+        $skus = store_parse_skus(array_key_exists('skus', $product) ? $product['skus'] : [], $error, $groups);
+        if ($skus === false) {
             store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU が不正です: ' . ($error ?: 'format'));
+            return false;
+        }
+        if ($groups && !$skus) {
+            store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU グループには SKU が必要です: group_skus');
             return false;
         }
         $json = json_encode($skus, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -139,6 +148,7 @@ function store_prepare_products_for_save(&$data) {
             store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU が長すぎます: limit');
             return false;
         }
+        $product['sku_groups'] = $groups;
         $product['skus'] = $skus;
         if ($skus) {
             $prices = store_product_prices($product);
@@ -160,8 +170,17 @@ function store_load_json() {
     if (!is_array($data) || !isset($data['categories']) || !isset($data['products'])) {
         return store_seed();
     }
+    // SKU の options は JSON オブジェクトを配列と誤認しないよう型を保って読み込む。
+    $document = json_decode($raw);
+    $rawProducts = isset($document->products) && is_array($document->products) ? $document->products : [];
     // 後方互換: 旧 'image'(単数) を 'images'(配列) に正規化 + attributes 既定値
-    foreach ($data['products'] as &$p) {
+    foreach ($data['products'] as $index => &$p) {
+        $rawProduct = $rawProducts[$index] ?? null;
+        foreach (['skus', 'sku_groups'] as $skuField) {
+            if (is_object($rawProduct) && isset($rawProduct->$skuField)) {
+                $p[$skuField] = store_sku_decode_json_rows(json_encode($rawProduct->$skuField));
+            }
+        }
         if (!isset($p['images']) || !is_array($p['images'])) {
             $p['images'] = (isset($p['image']) && $p['image'] !== '') ? [$p['image']] : [];
         }
@@ -170,6 +189,7 @@ function store_load_json() {
         $p['rating']  = isset($p['rating']) ? (float)$p['rating'] : 0;
         $p['reviews'] = isset($p['reviews']) ? (int)$p['reviews'] : 0;
         $p['skus'] = store_product_skus($p);
+        $p['sku_groups'] = store_product_sku_groups($p);
         if ($p['skus']) {
             $prices = store_product_prices($p);
             $p['price'] = $prices['price'];
@@ -370,8 +390,12 @@ function store_load_mysql() {
         $imgStmt->execute([$r['id']]);
         $images = array_map(function ($x) { return $x['path']; }, $imgStmt->fetchAll());
         $attrs = isset($r['attributes']) ? json_decode((string)$r['attributes'], true) : [];
-        $rawSkus = isset($r['skus']) ? json_decode((string)$r['skus']) : null;
-        $skus = store_product_skus(['skus' => is_array($rawSkus) ? json_decode((string)$r['skus'], true) : []]);
+        $skuData = [
+            'skus' => isset($r['skus']) ? store_sku_decode_json_rows($r['skus']) : [],
+            'sku_groups' => isset($r['sku_groups']) ? store_sku_decode_json_rows($r['sku_groups']) : [],
+        ];
+        $groups = store_product_sku_groups($skuData);
+        $skus = store_product_skus($skuData);
         $product = [
             'id'         => $r['id'],
             'category'   => $r['category'],
@@ -383,6 +407,7 @@ function store_load_mysql() {
             'price'      => (int)$r['price'],
             'price_max'  => isset($r['price_max']) ? (int)$r['price_max'] : null,
             'skus'       => $skus,
+            'sku_groups' => $groups,
             'badge'      => $r['badge'],
             'desc'       => $r['description'],
             'attributes' => is_array($attrs) ? $attrs : [],
@@ -423,6 +448,13 @@ function store_save_mysql($data) {
                 if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; }
             }
         }
+        if (!$pdo->query("SHOW COLUMNS FROM products LIKE 'sku_groups'")->fetch()) {
+            try {
+                $pdo->exec('ALTER TABLE products ADD COLUMN sku_groups MEDIUMTEXT NULL AFTER skus');
+            } catch (PDOException $e) {
+                if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; }
+            }
+        }
         $pdo->beginTransaction();
 
         $cs = $pdo->prepare(
@@ -435,10 +467,10 @@ function store_save_mysql($data) {
         }
 
         $ps = $pdo->prepare(
-            'INSERT INTO products (id, category, icon, accent, name, tag, price, price_max, skus, badge, description, attributes, rating, reviews, sort)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO products (id, category, icon, accent, name, tag, price, price_max, skus, sku_groups, badge, description, attributes, rating, reviews, sort)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE category=VALUES(category), icon=VALUES(icon), accent=VALUES(accent),
-             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), price_max=VALUES(price_max), skus=VALUES(skus), badge=VALUES(badge),
+             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), price_max=VALUES(price_max), skus=VALUES(skus), sku_groups=VALUES(sku_groups), badge=VALUES(badge),
              description=VALUES(description), attributes=VALUES(attributes),
              rating=VALUES(rating), reviews=VALUES(reviews), sort=VALUES(sort)'
         );
@@ -450,9 +482,10 @@ function store_save_mysql($data) {
             $productIds[] = $p['id'];
             $attrsJson = json_encode($p['attributes'] ?? [], JSON_UNESCAPED_UNICODE);
             $skusJson = json_encode($p['skus'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $groupsJson = json_encode($p['sku_groups'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $ps->execute([
                 $p['id'], $p['category'], shop_sanitize_icon($p['icon'] ?? 'fa-box'), shop_sanitize_accent($p['accent'] ?? '#DEF13F'),
-                $p['name'], $p['tag'] ?? '', (int)$p['price'], isset($p['price_max']) && $p['price_max'] !== '' ? (int)$p['price_max'] : null, $skusJson, $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
+                $p['name'], $p['tag'] ?? '', (int)$p['price'], isset($p['price_max']) && $p['price_max'] !== '' ? (int)$p['price_max'] : null, $skusJson, $groupsJson, $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
                 (float)($p['rating'] ?? 0), (int)($p['reviews'] ?? 0), $pi++,
             ]);
             $delImg->execute([$p['id']]);
