@@ -228,8 +228,9 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
     <textarea name="desc" rows="6"><?= htmlspecialchars($current['desc']) ?></textarea>
   </div>
 
-  <div class="adm-field">
-    <label>商品画像（先頭が<strong>メイン画像</strong>、2枚目以降が<strong>詳細画像</strong>・ボタンで並べ替え／削除）</label>
+  <div class="adm-field" id="productImageArea">
+    <label>商品画像（先頭が<strong>メイン画像</strong>、2枚目以降が<strong>詳細画像</strong>）</label>
+    <p class="adm-note">画像をドラッグして順番を変更できます（スマートフォンは画像を指で移動）。パソコンの画像はこのエリアにドロップして追加できます。変更後は「保存」を押してください。</p>
     <div class="imgm" id="imgManager">
       <?php foreach ($current['images'] as $img): ?>
       <div class="imgm-item" data-path="<?= htmlspecialchars($img) ?>">
@@ -311,6 +312,8 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
   function refresh() {
     var items = mgr.querySelectorAll('.imgm-item');
     items.forEach(function (it, i) {
+      it.draggable = true;
+      it.querySelector('img').draggable = false;
       var badge = it.querySelector('.imgm-main');
       if (badge) {
         if (i === 0) { badge.textContent = 'メイン'; badge.classList.remove('imgm-sub'); }
@@ -332,6 +335,72 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
     refresh();
   });
   refresh();
+
+  // 既存画像のドラッグ並べ替え。DOM順＝送信する images[] の順。
+  var dragged = null;
+  function moveImage(x, y) {
+    var target = document.elementFromPoint(x, y);
+    target = target && target.closest('.imgm-item');
+    if (!dragged || !target || target === dragged || target.parentNode !== mgr) return;
+    var nodes = Array.prototype.slice.call(mgr.children);
+    if (nodes.indexOf(dragged) < nodes.indexOf(target)) mgr.insertBefore(dragged, target.nextSibling);
+    else mgr.insertBefore(dragged, target);
+    refresh();
+  }
+  function endSort() {
+    if (dragged) dragged.classList.remove('is-dragging');
+    dragged = null;
+    mgr.classList.remove('is-sorting');
+    refresh();
+  }
+  mgr.addEventListener('dragstart', function (e) {
+    var item = e.target.closest('.imgm-item');
+    if (!item || e.target.closest('button')) { e.preventDefault(); return; }
+    dragged = item;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.path);
+    item.classList.add('is-dragging');
+    mgr.classList.add('is-sorting');
+  });
+  mgr.addEventListener('dragover', function (e) {
+    if (!dragged) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    moveImage(e.clientX, e.clientY);
+  });
+  mgr.addEventListener('drop', function (e) {
+    if (!dragged) return;
+    e.preventDefault();
+    e.stopPropagation();
+    endSort();
+  });
+  mgr.addEventListener('dragend', endSort);
+  // タッチ操作は画像部分のみ。ボタンと画像外では通常スクロール可能。
+  var touchPointer = null;
+  mgr.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' || e.target.tagName !== 'IMG') return;
+    dragged = e.target.closest('.imgm-item');
+    if (!dragged) return;
+    touchPointer = e.pointerId;
+    dragged.classList.add('is-dragging');
+    mgr.classList.add('is-sorting');
+    mgr.setPointerCapture(touchPointer);
+  });
+  mgr.addEventListener('pointermove', function (e) {
+    if (touchPointer !== e.pointerId) return;
+    e.preventDefault();
+    moveImage(e.clientX, e.clientY);
+  });
+  function endTouch(e) {
+    if (touchPointer !== e.pointerId) return;
+    var id = touchPointer;
+    touchPointer = null;
+    if (mgr.hasPointerCapture(id)) mgr.releasePointerCapture(id);
+    endSort();
+  }
+  mgr.addEventListener('pointerup', endTouch);
+  mgr.addEventListener('pointercancel', endTouch);
+  mgr.addEventListener('lostpointercapture', endTouch);
 
   // 画像管理に1枚追加（重複は無視）
   function addImage(path) {
@@ -364,13 +433,31 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
   fileInput.addEventListener('change', function () { uploadImgs(Array.prototype.slice.call(fileInput.files)); });
   folderInput.addEventListener('change', function () { uploadImgs(Array.prototype.slice.call(folderInput.files)); });
 
+  var imageArea = document.getElementById('productImageArea');
+  function isFileDrag(e) {
+    return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') >= 0;
+  }
   ['dragenter', 'dragover'].forEach(function (ev) {
-    dz.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); dz.classList.add('over'); });
+    imageArea.addEventListener(ev, function (e) {
+      if (!isFileDrag(e) || dragged) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      imageArea.classList.add('is-file-over');
+      dz.classList.add('over');
+    });
   });
-  ['dragleave', 'drop'].forEach(function (ev) {
-    dz.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); if (ev === 'dragleave' && dz.contains(e.relatedTarget)) return; dz.classList.remove('over'); });
+  function clearFileOver() { imageArea.classList.remove('is-file-over'); dz.classList.remove('over'); }
+  imageArea.addEventListener('dragleave', function (e) {
+    if (!imageArea.contains(e.relatedTarget)) clearFileOver();
   });
-  dz.addEventListener('drop', function (e) {
+  // エリア外にドロップしてもブラウザが画像を開いて編集内容を失わない。
+  document.addEventListener('dragover', function (e) { if (isFileDrag(e)) e.preventDefault(); });
+  document.addEventListener('drop', function (e) { if (isFileDrag(e)) { e.preventDefault(); clearFileOver(); } });
+  imageArea.addEventListener('drop', function (e) {
+    if (!isFileDrag(e) || dragged) return;
+    e.preventDefault();
+    e.stopPropagation();
+    clearFileOver();
     var items = e.dataTransfer.items;
     if (items && items.length && items[0].webkitGetAsEntry) {
       var entries = [];
@@ -393,6 +480,11 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
     }
     return Promise.all(entries.map(readEntry)).then(function () { return files; });
   }
+  var pendingUploads = 0;
+  var editForm = mgr.closest('form');
+  editForm.addEventListener('submit', function (e) {
+    if (pendingUploads) { e.preventDefault(); dzSet('アップロード完了後に保存してください。'); }
+  });
   function uploadImgs(fileList) {
     var imgs = fileList.filter(isImage);
     if (!imgs.length) { dzSet('画像ファイルが見つかりませんでした。'); return; }
@@ -404,6 +496,7 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
     fd.append('dir', '');
     imgs.forEach(function (f) { fd.append('files[]', f, f.name); });
     dzSet('アップロード中… ' + imgs.length + ' 枚');
+    pendingUploads++;
     dz.classList.add('uploading');
     fetch('media.php', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd })
       .then(function (r) {
@@ -419,9 +512,13 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
         } else {
           dzSet((j.errors && j.errors.length) ? j.errors.join(' / ') : 'アップロードに失敗しました');
         }
-        dz.classList.remove('uploading');
       })
-      .catch(function (e) { dz.classList.remove('uploading'); dzSet(e.message || 'アップロードに失敗しました。'); });
+      .catch(function (e) { dzSet(e.message || 'アップロードに失敗しました。'); })
+      .finally(function () {
+        pendingUploads--;
+        if (!pendingUploads) dz.classList.remove('uploading');
+        fileInput.value = ''; folderInput.value = '';
+      });
   }
 
   // 属性エディタ：行の追加・削除

@@ -1,0 +1,10 @@
+/* 商品画像のドラッグ操作。共通管理CSSには影響しない。 */
+#imgManager { min-height: 90px; border: 1px dashed #c8cfd8; border-radius: 10px; padding: 12px; }
+#imgManager .imgm-item { cursor: grab; transition: opacity .15s, box-shadow .15s; }
+#imgManager .imgm-item img { touch-action: none; user-select: none; -webkit-user-drag: none; }
+#imgManager .imgm-item:hover { box-shadow: 0 0 0 2px #a6b47b; }
+#imgManager .imgm-item.is-dragging { opacity: .45; cursor: grabbing; box-shadow: 0 0 0 3px var(--accent-strong); }
+#imgManager.is-sorting { background: #f4f7e9; }
+#productImageArea.is-file-over #imgManager { border: 2px dashed var(--accent-strong); background: #f4f7e9; }
+#imgDropStatus { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { #imgManager .imgm-item { transition: none; } }

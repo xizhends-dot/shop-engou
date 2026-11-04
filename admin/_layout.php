@@ -82,6 +82,9 @@ function admin_head($title, $showNav = true) {
 <?php if (adm_current_page() === 'products'): ?>
 <link rel="stylesheet" href="product-search.css?v=<?= (int)filemtime(__DIR__ . '/product-search.css') ?>">
 <?php endif; ?>
+<?php if (adm_current_page() === 'edit'): ?>
+<link rel="stylesheet" href="product-images.css?v=<?= (int)filemtime(__DIR__ . '/product-images.css') ?>">
+<?php endif; ?>
 </head>
 <body>
 <?php if ($showNav): ?>
