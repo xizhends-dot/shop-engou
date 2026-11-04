@@ -13,7 +13,7 @@ $isEdit  = false;
 $current = [
     'id' => '', 'category' => array_key_first($cats), 'name' => '', 'tag' => '',
     'price' => '', 'price_max' => '', 'badge' => '', 'icon' => 'fa-box', 'accent' => '#DEF13F',
-    'desc' => '', 'images' => [], 'attributes' => [], 'rating' => '', 'reviews' => '',
+    'desc' => '', 'images' => [], 'attributes' => [], 'skus' => [], 'rating' => '', 'reviews' => '',
 ];
 if ($editId !== '') {
     $idx = store_find_index($data['products'], $editId);
@@ -55,9 +55,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!isset($cats[$in['category']])) { $errors[] = __('edit.err_cat'); }
     if ($in['name'] === '') { $errors[] = __('edit.err_name'); }
-    if (!store_valid_price($in['price'])) { $errors[] = __('edit.err_price'); }
-    if ($in['price_max'] !== '' && (!store_valid_price($in['price_max']) || (float)$in['price_max'] < (float)$in['price'])) {
-        $errors[] = __('edit.err_price_max');
+    // SKU入力を検証。エラーの場合も編集行を保持する。
+    $skuError = null;
+    $postedSkus = $_POST['skus'] ?? [];
+    $skus = store_parse_skus($postedSkus, $skuError);
+    $current['skus'] = [];
+    if (is_array($postedSkus)) {
+        foreach (array_slice($postedSkus, 0, 100) as $row) {
+            if (!is_array($row)) { continue; }
+            $safeRow = [];
+            foreach (['id', 'name', 'price'] as $key) {
+                $safeRow[$key] = isset($row[$key]) && is_scalar($row[$key]) ? (string)$row[$key] : '';
+            }
+            $current['skus'][] = $safeRow;
+        }
+    }
+    if ($skus === false) {
+        $errors[] = __('sku.err_' . $skuError);
+    } elseif ($skus) {
+        $range = store_product_prices(['skus' => $skus]);
+        $in['price'] = (string)$range['price'];
+        $in['price_max'] = $range['price_max'] === null ? '' : (string)$range['price_max'];
+    } else {
+        if (!store_valid_price($in['price'])) { $errors[] = __('edit.err_price'); }
+        if ($in['price_max'] !== '' && (!store_valid_price($in['price_max']) || (float)$in['price_max'] < (float)$in['price'])) {
+            $errors[] = __('edit.err_price_max');
+        }
     }
 
     if (empty($errors)) {
@@ -110,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'badge'      => $in['badge'],
             'desc'       => $in['desc'],
             'attributes' => $attributes,
+            'skus'       => $skus,
             'rating'     => max(0, min(5, (float)$in['rating'])),
             'reviews'    => max(0, (int)$in['reviews']),
         ];
@@ -136,6 +160,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($attributes)) { $current['attributes'] = $attributes; }
 }
 
+$skuRows = !empty($current['skus']) && is_array($current['skus']) ? $current['skus'] : [];
+$hasSkus = !empty(store_product_skus($current));
 $token = csrf_token();
 admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
 ?>
@@ -180,17 +206,20 @@ admin_head($isEdit ? __('page.product_edit') : __('page.product_add'));
     <input type="text" name="tag" value="<?= htmlspecialchars($current['tag']) ?>" placeholder="例: 節水・高洗浄力・美肌美髪">
   </div>
 
+  <p class="adm-note" id="skuPriceHint" data-auto="<?= htmlspecialchars(__('sku.auto_price')) ?>" data-manual="<?= htmlspecialchars(__('sku.manual_price')) ?>"><?= htmlspecialchars(__($hasSkus ? 'sku.auto_price' : 'sku.manual_price')) ?></p>
   <div class="adm-grid">
     <div class="adm-field">
       <label for="price"><?= htmlspecialchars(__('edit.label_price')) ?><span class="req">*</span></label>
-      <input type="number" id="price" name="price" value="<?= htmlspecialchars((string)$current['price']) ?>" min="0" max="2147483647" step="1" required>
+      <input type="number" id="price" name="price" value="<?= htmlspecialchars((string)$current['price']) ?>" min="0" max="2147483647" step="1" <?= $hasSkus ? 'readonly' : 'required' ?> aria-describedby="skuPriceHint">
     </div>
     <div class="adm-field">
       <label for="price_max"><?= htmlspecialchars(__('edit.label_price_max')) ?></label>
-      <input type="number" id="price_max" name="price_max" value="<?= htmlspecialchars((string)($current['price_max'] ?? '')) ?>" min="0" max="2147483647" step="1" aria-describedby="price-max-hint">
+      <input type="number" id="price_max" name="price_max" value="<?= htmlspecialchars((string)($current['price_max'] ?? '')) ?>" min="0" max="2147483647" step="1" <?= $hasSkus ? 'readonly' : '' ?> aria-describedby="price-max-hint skuPriceHint">
       <small id="price-max-hint"><?= htmlspecialchars(__('edit.hint_price_max')) ?></small>
     </div>
   </div>
+
+  <?php require __DIR__ . '/_sku_editor.php'; ?>
 
   <div class="adm-grid">
     <div class="adm-field">

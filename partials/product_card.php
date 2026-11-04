@@ -5,6 +5,7 @@
  */
 $thumb = !empty($p['images']) ? $p['images'][0] : '';
 $cardCategory = $cats[$p['category']] ?? null;
+$cardPrices = store_product_prices($p);
 ?>
 <article class="product-card" data-category="<?= htmlspecialchars($p['category']) ?>">
   <a href="product.php?id=<?= urlencode($p['id']) ?>" class="product-thumb <?= $thumb === '' ? 'placeholder' : '' ?>" <?= $thumb === '' ? 'style="' . shop_gradient_style($p['accent'] ?? '') . '"' : '' ?>>
@@ -30,7 +31,7 @@ $cardCategory = $cats[$p['category']] ?? null;
     </div>
     <?php endif; ?>
     <div class="product-foot">
-      <span class="price"><?= yen($p['price'], $p['price_max'] ?? null) ?></span>
+      <span class="price"><?= yen($cardPrices['price'], $cardPrices['price_max']) ?></span>
       <a href="product.php?id=<?= urlencode($p['id']) ?>" class="btn-detail">詳細を見る</a>
     </div>
   </div>

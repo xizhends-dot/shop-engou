@@ -9,8 +9,9 @@ SET NAMES utf8mb4;
 SET time_zone = '+09:00';
 
 -- 既存DBに列を後から追加する場合（初回は不要）:
--- price_max は初回保存時に自動追加。ALTER権限がない場合は管理者が以下を実行:
+-- price_max / skus は初回保存時に自動追加。ALTER権限がない場合は管理者が以下を実行:
 --   ALTER TABLE `products` ADD COLUMN `price_max` INT NULL DEFAULT NULL AFTER `price`;
+--   ALTER TABLE `products` ADD COLUMN `skus` MEDIUMTEXT NULL AFTER `price_max`;
 --   ALTER TABLE `products` ADD COLUMN `attributes` TEXT NULL AFTER `description`;
 --   ALTER TABLE `products` ADD COLUMN `rating` DECIMAL(2,1) NOT NULL DEFAULT 0 AFTER `attributes`;
 --   ALTER TABLE `products` ADD COLUMN `reviews` INT NOT NULL DEFAULT 0 AFTER `rating`;
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `tag`         VARCHAR(255) NOT NULL DEFAULT '',
   `price`       INT          NOT NULL DEFAULT 0, -- 最低価格
   `price_max`   INT          NULL DEFAULT NULL, -- 最高価格（任意）
+  `skus`        MEDIUMTEXT   NULL,              -- SKU配列JSON（任意、最大100件）
   `badge`       VARCHAR(64)  NOT NULL DEFAULT '',
   `description` TEXT         NULL,
   `attributes`  TEXT         NULL,            -- 商品属性（カラー等）JSON文字列

@@ -21,6 +21,11 @@ $cat = $cats[$product['category']] ?? null;
 $pIcon = shop_sanitize_icon($product['icon'] ?? 'fa-box');
 $pAccent = shop_sanitize_accent($product['accent'] ?? '#DEF13F');
 $imgs = store_filter_product_image_paths($product['images'] ?? []);
+$skus = store_product_skus($product);
+$productPrices = store_product_prices($product);
+$inquirySubject = '【商品お問い合わせ】' . $product['name'] . '（商品番号: ' . $product['id'] . '）';
+$inquiryBody = '商品名：' . $product['name'] . "\n商品番号：" . $product['id'] . "\n\nお問い合わせ内容：\n";
+$inquiryHref = 'mailto:' . $config['email'] . '?subject=' . rawurlencode($inquirySubject) . '&body=' . rawurlencode($inquiryBody);
 
 // 関連商品（同カテゴリ・最大3件、自身を除く）
 $related = [];
@@ -36,6 +41,9 @@ $active     = 'shop';
 require __DIR__ . '/partials/header.php';
 ?>
 
+<?php if ($skus): ?>
+<link rel="stylesheet" href="sku-options.css?v=<?= (int) filemtime(__DIR__ . '/sku-options.css') ?>">
+<?php endif; ?>
 <div class="container">
   <!-- BREADCRUMB -->
   <nav class="breadcrumb">
@@ -89,9 +97,45 @@ require __DIR__ . '/partials/header.php';
         <?php if (!empty($product['reviews'])): ?><span class="d-rating-cnt">（<?= number_format((int)$product['reviews']) ?>件のレビュー）</span><?php endif; ?>
       </div>
       <?php endif; ?>
-      <div class="d-price"><?= yen($product['price'], $product['price_max'] ?? null) ?></div>
+      <div class="d-price" id="productPrice"<?= $skus ? ' aria-live="polite" aria-atomic="true"' : '' ?>><?= yen($productPrices['price'], $productPrices['price_max']) ?></div>
 
+      <?php if ($skus): ?>
+      <fieldset class="sku-options" id="skuOptions" aria-describedby="skuHelp">
+        <legend class="sku-options__legend">仕様を選ぶ</legend>
+        <p class="sku-options__help" id="skuHelp">仕様を選択すると、価格とお問い合わせ内容に反映されます。</p>
+        <div class="sku-options__list">
+          <?php foreach ($skus as $skuIndex => $sku): ?>
+          <div class="sku-options__item">
+            <input class="sku-options__radio" type="radio" name="product_sku" id="product-sku-<?= (int) $skuIndex ?>" value="<?= shop_e($sku['id']) ?>" data-sku-name="<?= shop_e($sku['name']) ?>" data-sku-price="<?= (int) $sku['price'] ?>">
+            <label class="sku-options__label" for="product-sku-<?= (int) $skuIndex ?>">
+              <span class="sku-options__identity">
+                <span class="sku-options__name"><?= shop_e($sku['name']) ?></span>
+                <span class="sku-options__id">SKU番号：<?= shop_e($sku['id']) ?></span>
+              </span>
+              <span class="sku-options__price"><?= yen($sku['price']) ?></span>
+            </label>
+          </div>
+          <?php endforeach; ?>
+        </div>
+        <div class="sku-options__footer">
+          <p class="sku-options__status" id="skuStatus">未選択・すべての仕様の価格を表示</p>
+          <button class="sku-options__reset" id="skuReset" type="button" aria-controls="skuOptions productPrice" aria-disabled="true">選択をクリア</button>
+        </div>
+      </fieldset>
       <?php if (!empty($product['attributes'])): ?>
+      <section class="sku-specs" aria-labelledby="skuSpecsTitle">
+        <h2 class="sku-specs__title" id="skuSpecsTitle">商品仕様（参考）</h2>
+        <dl class="sku-specs__list">
+          <?php foreach ($product['attributes'] as $a): if (empty($a['name'])) continue; ?>
+          <div class="sku-specs__row">
+            <dt><?= shop_e($a['name']) ?></dt>
+            <dd><?= !empty($a['options']) ? shop_e(implode(' / ', $a['options'])) : '—' ?></dd>
+          </div>
+          <?php endforeach; ?>
+        </dl>
+      </section>
+      <?php endif; ?>
+      <?php elseif (!empty($product['attributes'])): ?>
       <div class="d-attrs" id="dAttrs">
         <?php foreach ($product['attributes'] as $a): if (empty($a['name'])) continue; ?>
         <div class="d-attr" data-attr-group="<?= shop_e($a['name']) ?>">
@@ -109,7 +153,7 @@ require __DIR__ . '/partials/header.php';
       <?php endif; ?>
 
       <div class="detail-actions">
-        <a id="inquiryBtn" href="mailto:<?= shop_e($config['email']) ?>?subject=<?= rawurlencode('【商品お問い合わせ】' . $product['name'] . '（商品番号: ' . $product['id'] . '）') ?>" class="btn-primary">
+        <a id="inquiryBtn" href="<?= shop_e($inquiryHref) ?>" data-inquiry-email="<?= shop_e($config['email']) ?>" data-product-name="<?= shop_e($product['name']) ?>" data-product-id="<?= shop_e($product['id']) ?>" class="btn-primary">
           <i class="fa-solid fa-envelope"></i><span>問い合わせ</span>
         </a>
         <a href="list.php" class="btn-ghost">
@@ -162,42 +206,8 @@ require __DIR__ . '/partials/header.php';
     if (nextBtn) nextBtn.addEventListener('click', function () { showGallery(current + 1); });
   }
 
-  // 商品属性：選択肢のクリック（グループ内で単一選択）＋ 問い合わせメールに反映
-  var attrs = document.getElementById('dAttrs');
-  var inquiry = document.getElementById('inquiryBtn');
-  var EMAIL = <?= json_encode($config['email']) ?>;
-  var PNAME = <?= json_encode($product['name']) ?>;
-  var PID   = <?= json_encode($product['id']) ?>;
-
-  function updateInquiry() {
-    if (!inquiry) return;
-    var lines = [];
-    if (attrs) {
-      attrs.querySelectorAll('.d-attr').forEach(function (g) {
-        var sel = g.querySelector('.d-attr-chip.selected');
-        if (sel) { lines.push(g.dataset.attrGroup + '：' + sel.dataset.val); }
-      });
-    }
-    var subject = '【商品お問い合わせ】' + PNAME + '（商品番号: ' + PID + '）';
-    var body = '商品名：' + PNAME + '\n商品番号：' + PID + '\n';
-    if (lines.length) { body += '\nご希望の仕様：\n' + lines.join('\n') + '\n'; }
-    body += '\nお問い合わせ内容：\n';
-    inquiry.href = 'mailto:' + EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-  }
-
-  if (attrs) {
-    attrs.querySelectorAll('.d-attr').forEach(function (g) {
-      g.querySelectorAll('.d-attr-chip').forEach(function (c) {
-        c.addEventListener('click', function () {
-          g.querySelectorAll('.d-attr-chip').forEach(function (x) { x.classList.remove('selected'); });
-          c.classList.add('selected');
-          updateInquiry();
-        });
-      });
-    });
-  }
-  updateInquiry();
 })();
 </script>
+<script src="product-skus.js?v=<?= (int) filemtime(__DIR__ . '/product-skus.js') ?>" defer></script>
 
 <?php require __DIR__ . '/partials/footer.php'; ?>

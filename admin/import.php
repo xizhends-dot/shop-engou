@@ -132,9 +132,10 @@ admin_head(__('page.import'));
   <h3 style="font-size:15px;margin-bottom:14px;color:var(--heading);">2. ファイルをアップロード</h3>
   <p class="adm-note">
     商品番号（id）が既存と一致する行は<strong>更新</strong>、一致しない行は<strong>新規追加</strong>されます。<br>
-    1行目はヘッダー：<code>id, category, name, tag, price, price_max, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。<br>
-    <code>price</code> は最低価格（必須）、<code>price_max</code> は最高価格（任意）です。価格は0〜2147483647の半角整数で、最高価格は最低価格以上にしてください。<br>
-    <code>price_max</code> 列の空欄は最高価格を解除し、単一価格になります。旧ファイルなどで列自体がない場合、既存商品の最高価格は維持され、新規商品は単一価格になります。維持する最高価格を最低価格が超える行は取り込めません。<br>
+    1行目はヘッダー：<code>id, category, name, tag, price, price_max, skus, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。<br>
+    <code>skus</code> は任意列です。JSON 配列（例：<code>[{"id":"A","name":"白 / S","price":1000}]</code>）で指定し、各 SKU の価格から商品価格を自動計算します。最大100件、番号は同一商品内で大文字・小文字を区別せず一意にしてください。既存商品で列自体がない場合は SKU を維持し、列の空欄または <code>[]</code> は SKU を解除します。<br>
+    <code>price</code> は必須列ですが、SKU がある行では値を空欄にできます。SKU がない場合は最低価格（必須）、<code>price_max</code> は最高価格（任意）です。価格は0〜2147483647の半角整数で、最高価格は最低価格以上にしてください。<br>
+    SKU がない行の <code>price_max</code> 列の空欄は最高価格を解除し、単一価格になります。旧ファイルなどで列自体がない場合、既存商品の最高価格は維持され、新規商品は単一価格になります。維持する最高価格を最低価格が超える行は取り込めません。<br>
     <code>category</code> はキー（<?= htmlspecialchars(implode(' / ', array_keys($cats))) ?>）または名称。<br>
     画像は <code>image1</code>（メイン）〜 <code>image20</code> に、本站の画像パスまたは公開 <strong>HTTP(S) 画像URL</strong>を指定します。URLの画像は取り込み時にサーバーへダウンロードされ、以後は本站の画像を表示します。<br>
     JPG / PNG / WebP / GIF、1枚8MBまで。URLの拡張子ではなく画像の実体を検証します。利用権限のある画像のみ指定してください。<br>

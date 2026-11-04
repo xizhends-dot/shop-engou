@@ -84,6 +84,7 @@ function admin_head($title, $showNav = true) {
 <?php endif; ?>
 <?php if (adm_current_page() === 'edit'): ?>
 <link rel="stylesheet" href="product-images.css?v=<?= (int)filemtime(__DIR__ . '/product-images.css') ?>">
+<link rel="stylesheet" href="sku-editor.css?v=<?= (int)filemtime(__DIR__ . '/sku-editor.css') ?>">
 <?php endif; ?>
 </head>
 <body>

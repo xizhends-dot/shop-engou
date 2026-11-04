@@ -19,6 +19,7 @@ define('BANNER_SETTINGS_FILE', SHOP_BASE . '/data/banner_settings.json'); // バ
 define('FEATURED_FILE', SHOP_BASE . '/data/featured.json'); // おすすめ商品ID（順序つき）
 define('FEATURED_MAX', 12);                                 // おすすめ最大件数
 define('BANNER_MAX', 5);                                    // バナー登録上限（枚）
+require_once __DIR__ . '/product_skus.php';
 
 /** 価格表示ヘルパー（全ページ共通） */
 function yen($n, $max = null) {
@@ -31,9 +32,10 @@ function yen($n, $max = null) {
 
 /** 管理画面用の価格（税表記なし） */
 function store_price_text(array $product) {
-    $text = '¥' . number_format((int)$product['price']);
-    $max = $product['price_max'] ?? null;
-    if ($max !== null && $max !== '' && (int)$max >= (int)$product['price']) {
+    $prices = store_product_prices($product);
+    $text = '¥' . number_format((int)$prices['price']);
+    $max = $prices['price_max'];
+    if ($max !== null && $max !== '' && (int)$max >= (int)$prices['price']) {
         $text .= ' ～ ¥' . number_format((int)$max);
     }
     return $text;
@@ -115,6 +117,39 @@ function store_set_last_error($msg) {
     $GLOBALS['_store_last_error'] = (string)$msg;
 }
 
+/** 保存時は SKU を厳密に検証し、価格を SKU から確定させる。 */
+function store_prepare_products_for_save(&$data) {
+    if (!isset($data['products']) || !is_array($data['products'])) {
+        store_set_last_error('商品データの形式が不正です');
+        return false;
+    }
+    foreach ($data['products'] as &$product) {
+        if (!is_array($product)) {
+            store_set_last_error('商品データの形式が不正です');
+            return false;
+        }
+        $error = '';
+        $skus = store_parse_skus($product['skus'] ?? [], $error);
+        if ($skus === false || (array_key_exists('skus', $product) && !is_array($product['skus']))) {
+            store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU が不正です: ' . ($error ?: 'format'));
+            return false;
+        }
+        $json = json_encode($skus, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false || strlen($json) > 16777215) {
+            store_set_last_error('商品 ' . (string)($product['id'] ?? '') . ' の SKU が長すぎます: limit');
+            return false;
+        }
+        $product['skus'] = $skus;
+        if ($skus) {
+            $prices = store_product_prices($product);
+            $product['price'] = $prices['price'];
+            $product['price_max'] = $prices['price_max'];
+        }
+    }
+    unset($product);
+    return true;
+}
+
 /* ---------------- JSON ドライバ ---------------- */
 function store_load_json() {
     if (!is_file(STORE_FILE)) {
@@ -134,6 +169,12 @@ function store_load_json() {
         if (!isset($p['attributes']) || !is_array($p['attributes'])) { $p['attributes'] = []; }
         $p['rating']  = isset($p['rating']) ? (float)$p['rating'] : 0;
         $p['reviews'] = isset($p['reviews']) ? (int)$p['reviews'] : 0;
+        $p['skus'] = store_product_skus($p);
+        if ($p['skus']) {
+            $prices = store_product_prices($p);
+            $p['price'] = $prices['price'];
+            $p['price_max'] = $prices['price_max'];
+        }
     }
     unset($p);
     categories_sort_by_index($data['categories']);
@@ -141,6 +182,9 @@ function store_load_json() {
 }
 
 function store_save_json($data) {
+    if (!store_prepare_products_for_save($data)) {
+        return false;
+    }
     if (!empty($data['categories']) && is_array($data['categories'])) {
         categories_apply_sort_indices($data['categories']);
     }
@@ -326,7 +370,9 @@ function store_load_mysql() {
         $imgStmt->execute([$r['id']]);
         $images = array_map(function ($x) { return $x['path']; }, $imgStmt->fetchAll());
         $attrs = isset($r['attributes']) ? json_decode((string)$r['attributes'], true) : [];
-        $products[] = [
+        $rawSkus = isset($r['skus']) ? json_decode((string)$r['skus']) : null;
+        $skus = store_product_skus(['skus' => is_array($rawSkus) ? json_decode((string)$r['skus'], true) : []]);
+        $product = [
             'id'         => $r['id'],
             'category'   => $r['category'],
             'icon'       => $r['icon'],
@@ -336,12 +382,19 @@ function store_load_mysql() {
             'tag'        => $r['tag'],
             'price'      => (int)$r['price'],
             'price_max'  => isset($r['price_max']) ? (int)$r['price_max'] : null,
+            'skus'       => $skus,
             'badge'      => $r['badge'],
             'desc'       => $r['description'],
             'attributes' => is_array($attrs) ? $attrs : [],
             'rating'     => isset($r['rating']) ? (float)$r['rating'] : 0,
             'reviews'    => isset($r['reviews']) ? (int)$r['reviews'] : 0,
         ];
+        if ($skus) {
+            $prices = store_product_prices($product);
+            $product['price'] = $prices['price'];
+            $product['price_max'] = $prices['price_max'];
+        }
+        $products[] = $product;
     }
     return ['categories' => $cats, 'products' => $products];
 }
@@ -349,6 +402,9 @@ function store_load_mysql() {
 /** 全データをトランザクションで同期（DELETE ALL せず UPSERT + 孤立行削除） */
 function store_save_mysql($data) {
     try {
+        if (!store_prepare_products_for_save($data)) {
+            return false;
+        }
         $data = store_normalize_data_for_db($data);
         $pdo = db_connect();
         // DDL は暗黙 COMMIT を起こすため、データ更新トランザクションより前に実行する。
@@ -357,6 +413,13 @@ function store_save_mysql($data) {
                 $pdo->exec('ALTER TABLE products ADD COLUMN price_max INT NULL DEFAULT NULL AFTER price');
             } catch (PDOException $e) {
                 // 同時保存で別リクエストが追加済みの場合のみ続行する。
+                if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; }
+            }
+        }
+        if (!$pdo->query("SHOW COLUMNS FROM products LIKE 'skus'")->fetch()) {
+            try {
+                $pdo->exec('ALTER TABLE products ADD COLUMN skus MEDIUMTEXT NULL AFTER price_max');
+            } catch (PDOException $e) {
                 if ((int)($e->errorInfo[1] ?? 0) !== 1060) { throw $e; }
             }
         }
@@ -372,10 +435,10 @@ function store_save_mysql($data) {
         }
 
         $ps = $pdo->prepare(
-            'INSERT INTO products (id, category, icon, accent, name, tag, price, price_max, badge, description, attributes, rating, reviews, sort)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO products (id, category, icon, accent, name, tag, price, price_max, skus, badge, description, attributes, rating, reviews, sort)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE category=VALUES(category), icon=VALUES(icon), accent=VALUES(accent),
-             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), price_max=VALUES(price_max), badge=VALUES(badge),
+             name=VALUES(name), tag=VALUES(tag), price=VALUES(price), price_max=VALUES(price_max), skus=VALUES(skus), badge=VALUES(badge),
              description=VALUES(description), attributes=VALUES(attributes),
              rating=VALUES(rating), reviews=VALUES(reviews), sort=VALUES(sort)'
         );
@@ -386,9 +449,10 @@ function store_save_mysql($data) {
         foreach ($data['products'] as $p) {
             $productIds[] = $p['id'];
             $attrsJson = json_encode($p['attributes'] ?? [], JSON_UNESCAPED_UNICODE);
+            $skusJson = json_encode($p['skus'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $ps->execute([
                 $p['id'], $p['category'], shop_sanitize_icon($p['icon'] ?? 'fa-box'), shop_sanitize_accent($p['accent'] ?? '#DEF13F'),
-                $p['name'], $p['tag'] ?? '', (int)$p['price'], isset($p['price_max']) && $p['price_max'] !== '' ? (int)$p['price_max'] : null, $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
+                $p['name'], $p['tag'] ?? '', (int)$p['price'], isset($p['price_max']) && $p['price_max'] !== '' ? (int)$p['price_max'] : null, $skusJson, $p['badge'] ?? '', $p['desc'] ?? '', $attrsJson,
                 (float)($p['rating'] ?? 0), (int)($p['reviews'] ?? 0), $pi++,
             ]);
             $delImg->execute([$p['id']]);
