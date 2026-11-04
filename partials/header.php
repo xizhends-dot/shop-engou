@@ -43,6 +43,13 @@ $catalog_style_version = is_file($catalog_stylesheet) ? (string)filemtime($catal
       <span class="logo-divider"></span>
       <span class="logo-brand"><?= $config['brand'] ?></span>
     </a>
+    <form class="catalog-search" action="list.php" method="get" role="search" aria-label="商品検索">
+      <label class="catalog-search-label" for="catalog-search-query">商品名・商品番号で検索</label>
+      <div class="catalog-search-control">
+        <input id="catalog-search-query" type="search" name="q" value="<?= shop_e($catalog_search_query) ?>" placeholder="商品名・商品番号を入力">
+        <button type="submit" aria-label="検索"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+      </div>
+    </form>
     <div class="nav-links" id="navLinks">
       <a href="index.php#top">ホーム</a>
       <a href="list.php" class="<?= $active === 'shop' ? 'active' : '' ?>">商品一覧</a>
@@ -61,14 +68,6 @@ $catalog_style_version = is_file($catalog_stylesheet) ? (string)filemtime($catal
 <div class="catalog-header-tools">
   <div class="container">
     <p class="catalog-utility-note">商品情報・税込価格をご覧いただけます</p>
-    <form class="catalog-search" action="list.php" method="get" role="search" aria-label="商品検索">
-      <label class="catalog-search-label" for="catalog-search-query">商品を探す</label>
-      <div class="catalog-search-control">
-        <input id="catalog-search-query" type="search" name="q" value="<?= shop_e($catalog_search_query) ?>" placeholder="商品名・商品番号を入力" aria-describedby="catalog-search-hint">
-        <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>検索</span></button>
-      </div>
-      <p class="catalog-search-hint" id="catalog-search-hint">商品名・商品番号の一部から検索できます。</p>
-    </form>
     <nav class="catalog-content-nav" aria-label="商品選びのご案内">
       <a href="index.php#categories">カテゴリーから探す</a>
       <a href="index.php#featured">おすすめ商品</a>

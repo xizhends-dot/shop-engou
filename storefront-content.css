@@ -1,14 +1,41 @@
 /* コンテンツを増やすための拡張。既存の商品カード寸法と余白は維持する。 */
-.catalog-header-tools { margin-top: 72px; background: #f6f7f8; border-bottom: 1px solid var(--border); }
+.catalog-header-tools { margin-top: 73px; background: #f6f7f8; border-bottom: 1px solid var(--border); }
 .catalog-header-tools + main { padding-top: 0; }
 .catalog-utility-note { padding: 8px 24px; text-align: center; color: #56606a; font-size: 12px; background: #eaeddf; }
-.catalog-search { max-width: 760px; margin: auto; padding: 20px 24px 14px; }
-.catalog-search-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-.catalog-search-control { display: flex; background: #fff; border: 1px solid #c5cbd2; border-radius: 8px; overflow: hidden; }
-.catalog-search-control input { min-width: 0; flex: 1; border: 0; padding: 12px 16px; font: inherit; font-size: 16px; background: transparent; }
-.catalog-search-control button { min-width: 88px; border: 0; padding: 12px 18px; background: var(--heading); color: #fff; font: inherit; cursor: pointer; }
-.catalog-search-control:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-.catalog-search-hint { font-size: 12px; color: #606975; margin-top: 6px; }
+.nav-inner { max-width: 1440px; gap: 24px; }
+.nav-logo, .nav-links, .hamburger { flex-shrink: 0; }
+.catalog-search { flex: 1 1 320px; min-width: 180px; max-width: none; margin: 0; }
+.catalog-search-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.catalog-search-control { display: flex; height: 40px; background: #292b3d; border: 1px solid #626575; border-radius: 6px; overflow: hidden; }
+.catalog-search-control input { min-width: 0; width: 100%; flex: 1; border: 0; padding: 8px 12px; font: inherit; font-size: 14px; background: transparent; color: #fff; }
+.catalog-search-control input::placeholder { color: #c2c5d1; opacity: 1; }
+.catalog-search-control input:focus { outline: none; }
+.catalog-search-control button { flex: 0 0 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
+.catalog-search-control button:hover { background: #3c3f52; }
+.catalog-search-control:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 769px) and (max-width: 1100px) {
+  .nav-inner { gap: 16px; }
+  .nav-links { gap: 12px; font-size: 12px; }
+  .nav-logo { gap: 8px; }
+  .logo-main { font-size: 18px; letter-spacing: 1px; }
+  .logo-sub { letter-spacing: 1px; }
+  .nav-home-link { padding: 6px 10px; }
+}
+@media (min-width: 769px) and (max-width: 950px) {
+  .nav-inner { height: 122px; flex-wrap: wrap; gap: 0 20px; padding-top: 12px; padding-bottom: 12px; }
+  .catalog-search { order: 3; flex-basis: 100%; max-width: none; }
+  .catalog-header-tools { margin-top: 123px; }
+  .section, .banner { scroll-margin-top: 134px; }
+}
+@media (max-width: 768px) {
+  .nav-inner { height: 124px; flex-wrap: wrap; gap: 0 12px; padding-top: 10px; padding-bottom: 12px; }
+  .catalog-search { order: 3; flex-basis: 100%; max-width: none; }
+  .catalog-search-control { height: 44px; }
+  .catalog-search-control input { font-size: 16px; }
+  .nav-links { top: 125px; }
+  .catalog-header-tools { margin-top: 125px; }
+  .section, .banner { scroll-margin-top: 136px; }
+}
 .catalog-content-nav { display: flex; justify-content: center; gap: 28px; padding: 8px 24px 14px; flex-wrap: wrap; font-size: 13px; font-weight: 700; }
 .catalog-content-nav a { padding: 8px 0; }
 .catalog-content-nav a:hover { color: var(--accent-strong); }
