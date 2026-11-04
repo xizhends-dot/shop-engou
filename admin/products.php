@@ -5,7 +5,11 @@ require_once __DIR__ . '/_layout.php';
 
 $data     = store_load();
 $cats     = $data['categories'];
-$products = $data['products'];
+require_once __DIR__ . '/../lib/product_search.php';
+$searchId = product_search_query($_GET, 'search_id');
+$searchName = product_search_query($_GET, 'search_name');
+$isSearching = $searchId !== '' || $searchName !== '';
+$products = product_search($data['products'], $searchId, $searchName);
 
 $perPage = 20;
 $total   = count($products);
@@ -26,8 +30,24 @@ admin_head(__('page.products'));
   </div>
 </div>
 
+<form method="get" action="products.php" class="adm-form" role="search" style="margin-bottom:20px;">
+  <div class="adm-grid">
+    <div class="adm-field">
+      <label for="search-id"><?= htmlspecialchars(__('col.product_id')) ?></label>
+      <input type="search" id="search-id" name="search_id" value="<?= htmlspecialchars($searchId) ?>" placeholder="<?= htmlspecialchars(__('products.search_id')) ?>">
+    </div>
+    <div class="adm-field">
+      <label for="search-name"><?= htmlspecialchars(__('col.name')) ?></label>
+      <input type="search" id="search-name" name="search_name" value="<?= htmlspecialchars($searchName) ?>" placeholder="<?= htmlspecialchars(__('products.search_name')) ?>">
+    </div>
+  </div>
+  <p class="adm-note"><?= htmlspecialchars(__('products.search_hint')) ?></p>
+  <button type="submit" class="adm-btn adm-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> <?= htmlspecialchars(__('products.search')) ?></button>
+  <a href="products.php" class="adm-btn"><?= htmlspecialchars(__('products.search_reset')) ?></a>
+</form>
+
 <?php if (empty($products)): ?>
-  <div class="adm-empty"><?= htmlspecialchars(__('products.empty')) ?></div>
+  <div class="adm-empty"><?= htmlspecialchars(__($isSearching ? 'products.search_empty' : 'products.empty')) ?></div>
 <?php else: ?>
 
 <div class="products-batch-bar">
@@ -105,12 +125,12 @@ admin_head(__('page.products'));
 
 <?php if ($pages > 1): ?>
 <nav class="adm-pager" aria-label="pager">
-  <?php if ($page > 1): ?><a class="adm-pager-btn" href="products.php?page=<?= $page - 1 ?>"><i class="fa-solid fa-chevron-left"></i></a><?php endif; ?>
+  <?php if ($page > 1): ?><a class="adm-pager-btn" href="<?= htmlspecialchars(product_search_page_url($page - 1, $searchId, $searchName)) ?>"><i class="fa-solid fa-chevron-left"></i></a><?php endif; ?>
   <?php for ($i = 1; $i <= $pages; $i++): ?>
     <?php if ($i === $page): ?><span class="adm-pager-num active"><?= $i ?></span>
-    <?php else: ?><a class="adm-pager-num" href="products.php?page=<?= $i ?>"><?= $i ?></a><?php endif; ?>
+    <?php else: ?><a class="adm-pager-num" href="<?= htmlspecialchars(product_search_page_url($i, $searchId, $searchName)) ?>"><?= $i ?></a><?php endif; ?>
   <?php endfor; ?>
-  <?php if ($page < $pages): ?><a class="adm-pager-btn" href="products.php?page=<?= $page + 1 ?>"><i class="fa-solid fa-chevron-right"></i></a><?php endif; ?>
+  <?php if ($page < $pages): ?><a class="adm-pager-btn" href="<?= htmlspecialchars(product_search_page_url($page + 1, $searchId, $searchName)) ?>"><i class="fa-solid fa-chevron-right"></i></a><?php endif; ?>
 </nav>
 <p class="adm-pager-info"><?= htmlspecialchars(__('products.pager_range', [
     'total' => $total, 'from' => $from, 'to' => $to, 'page' => $page, 'pages' => $pages,

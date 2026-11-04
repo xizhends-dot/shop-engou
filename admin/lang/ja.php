@@ -329,6 +329,12 @@ return [
     'col.status' => '状態',
     'col.detail' => '詳細',
 
+    'products.search_id' => '商品番号を入力（部分一致）',
+    'products.search_name' => '商品名を入力（部分一致）',
+    'products.search_hint' => '商品番号・商品名で検索できます。両方入力すると両条件に一致する商品を表示します。英字の大文字・小文字は区別しません。',
+    'products.search' => '検索',
+    'products.search_reset' => 'リセット',
+    'products.search_empty' => '条件に一致する商品がありません。検索条件を変更するか、リセットしてください。',
     'products.empty' => 'まだ商品がありません。「新規追加」から登録してください。',
     'products.pager_range' => '{total} 件中 {from}〜{to} 件（{page} / {pages} ページ）',
     'products.delete_confirm' => '「{name}」を削除しますか？',

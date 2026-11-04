@@ -329,6 +329,12 @@ return [
     'col.status' => '状态',
     'col.detail' => '详情',
 
+    'products.search_id' => '输入商品编号（支持部分匹配）',
+    'products.search_name' => '输入商品名称（支持部分匹配）',
+    'products.search_hint' => '可按编号或名称搜索；同时填写时须满足两个条件。英文字母不区分大小写。',
+    'products.search' => '搜索',
+    'products.search_reset' => '重置',
+    'products.search_empty' => '没有找到符合条件的商品，请修改搜索条件或点击「重置」。',
     'products.empty' => '尚无商品，请点击「新增商品」登记。',
     'products.pager_range' => '共 {total} 件，显示第 {from}–{to} 件（第 {page} / {pages} 页）',
     'products.delete_confirm' => '确定删除「{name}」吗？',
