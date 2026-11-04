@@ -108,15 +108,121 @@ function import_read_xlsx($tmpPath) {
     if (!$xlsx) {
         return ['error' => 'Excel を読み込めませんでした: ' . \Shuchkin\SimpleXLSX::parseError()];
     }
-    $rows = $xlsx->rows();
-    if (empty($rows)) {
-        return ['error' => 'Excel にシートデータがありません。'];
+    $names = $xlsx->sheetNames();
+    $skuIndex = array_search('SKU', $names, true);
+    $productIndex = array_search('商品', $names, true);
+    if ($productIndex === false) {
+        foreach ($names as $index => $name) {
+            if ($index !== $skuIndex) { $productIndex = $index; break; }
+        }
     }
-    return ['rows' => $rows, 'from_csv' => false];
+    $rows = $productIndex !== false ? $xlsx->rows($productIndex) : [['id', 'category', 'name', 'price']];
+    if (empty($rows)) {
+        return ['error' => '商品シートのヘッダーがありません。テンプレートの1行目を残してください。'];
+    }
+    $skuRows = $skuIndex !== false ? $xlsx->rows($skuIndex) : null;
+    return ['rows' => $rows, 'sku_rows' => $skuRows, 'from_csv' => false];
+}
+
+function import_sku_sheet_header() {
+    return ['CODE', 'タイトル1', '内容1', '価格', 'タイトル2', '内容2', 'タイトル3', '内容3', 'SKU番号', '表示名'];
+}
+
+/** SKUシートはCODE単位で検証し、不正な組み合わせを部分保存しない。 */
+function import_parse_sku_sheet_rows(array $rows) {
+    if (!$rows) { return ['error' => 'SKUシートのヘッダーがありません。テンプレートの1行目を残してください。']; }
+    $header = array_map(function ($cell) { return trim((string)$cell); }, $rows[0]);
+    $header[0] = isset($header[0]) ? ltrim($header[0], "\xEF\xBB\xBF") : '';
+    if (array_slice($header, 0, 9) !== array_slice(import_sku_sheet_header(), 0, 9)
+        || (isset($header[9]) && $header[9] !== '' && $header[9] !== '表示名')) {
+        return ['error' => 'SKUシートの1行目は CODE, タイトル1, 内容1, 価格, タイトル2, 内容2, タイトル3, 内容3, SKU番号 にしてください。'];
+    }
+    $raw = [];
+    $invalid = [];
+    $errors = [];
+    foreach (array_slice($rows, 1) as $offset => $row) {
+        if (!is_array($row) || !array_filter($row, function ($v) { return trim((string)$v) !== ''; })) { continue; }
+        $line = $offset + 2;
+        $fields = array_map(function ($v) { return trim((string)$v); }, array_pad(array_slice($row, 0, 10), 10, ''));
+        $code = $fields[0];
+        if (!store_valid_id($code)) {
+            $errors[] = "SKUシート {$line}行目: CODE が不正です。";
+            continue;
+        }
+        $pairs = [];
+        $gap = false;
+        $outOfOrder = false;
+        foreach ([[1, 2], [4, 5], [6, 7]] as $indices) {
+            $title = $fields[$indices[0]];
+            $content = $fields[$indices[1]];
+            if ($title === '' && $content === '') { $gap = true; continue; }
+            if ($gap) { $outOfOrder = true; }
+            $pairs[] = [$title, $content];
+        }
+        if ($outOfOrder || !$pairs || !store_valid_price($fields[3]) || ($fields[8] !== '' && !store_valid_id($fields[8]))) {
+            $invalid[$code] = true;
+            $errors[] = "SKUシート {$line}行目（{$code}）: 仕様または価格が不正です。";
+            continue;
+        }
+        $raw[$code][] = ['id' => $fields[8], 'pairs' => $pairs, 'price' => $fields[3], 'name' => $fields[9], 'line' => $line];
+        if (count($raw[$code]) > 100) {
+            $invalid[$code] = true;
+            $errors[] = "SKUシート {$line}行目（{$code}）: 1商品100SKUまでです。";
+        }
+    }
+    $byCode = [];
+    foreach ($raw as $code => $items) {
+        if (isset($invalid[$code])) { continue; }
+        $titles = array_column($items[0]['pairs'], 0);
+        $grouped = $titles[0] !== '';
+        $groups = [];
+        $skus = [];
+        $usedIds = [];
+        $reservedIds = array_map('strtolower', array_filter(array_column($items, 'id'), function ($id) { return $id !== ''; }));
+        $bad = '';
+        foreach ($items as $item) {
+            $itemTitles = array_column($item['pairs'], 0);
+            if ($itemTitles !== $titles || ($grouped && in_array('', $titles, true)) || (!$grouped && (count($titles) !== 1 || $item['pairs'][0][1] === ''))) {
+                $bad = "SKUシート {$item['line']}行目（{$code}）: タイトルの順序または内容が一致しません。";
+                break;
+            }
+            foreach ($item['pairs'] as $i => $pair) {
+                if ($pair[1] === '') { $bad = "SKUシート {$item['line']}行目（{$code}）: 内容が空です。"; break; }
+                if ($grouped) {
+                    if (!isset($groups[$i])) { $groups[$i] = ['name' => $pair[0], 'options' => []]; }
+                    if (!in_array($pair[1], $groups[$i]['options'], true)) { $groups[$i]['options'][] = $pair[1]; }
+                }
+            }
+            if ($bad !== '') { break; }
+            $id = $item['id'];
+            if ($id === '') {
+                $serial = 1;
+                do { $id = 'SKU-' . $serial++; } while (isset($usedIds[strtolower($id)]) || in_array(strtolower($id), $reservedIds, true));
+            }
+            if (isset($usedIds[strtolower($id)])) {
+                $bad = "SKUシート {$item['line']}行目（{$code}）: SKU番号が重複しています。";
+                break;
+            }
+            $usedIds[strtolower($id)] = true;
+            $sku = ['id' => $id, 'name' => $item['name'] !== '' ? $item['name'] : ($grouped ? '' : $item['pairs'][0][1]), 'price' => $item['price']];
+            if ($grouped) { $sku['options'] = array_column($item['pairs'], 1); }
+            $skus[] = $sku;
+        }
+        $validationError = '';
+        $groups = $bad === '' ? store_parse_sku_groups($groups, $validationError) : false;
+        $skus = $groups !== false ? store_parse_skus($skus, $validationError, $groups) : false;
+        if ($groups === false || $skus === false || !$skus) {
+            $invalid[$code] = true;
+            $errors[] = $bad !== '' ? $bad : "SKUシート（{$code}）: 仕様・SKU番号・価格が不正です（{$validationError}）。";
+            continue;
+        }
+        $byCode[$code] = ['sku_groups' => $groups, 'skus' => $skus];
+    }
+    return ['by_code' => $byCode, 'invalid' => $invalid, 'rowErrors' => $errors];
 }
 
 /** 取込み実行 */
-function import_apply_rows(array $dataRows, array $map, array $data, array $cats, $fromCsv = false) {
+function import_apply_rows(array $dataRows, array $map, array $data, array $cats, $fromCsv = false, array $skuOverrides = [], array $invalidSkuCodes = []) {
     $catByName = [];
     foreach ($cats as $k => $c) {
         $catByName[$c['name']] = $k;
@@ -148,6 +254,10 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         }
 
         $id    = $get($row, 'id');
+        if (isset($invalidSkuCodes[$id])) {
+            $rowErrors[] = "{$line}行目（{$id}）: SKUシートにエラーがあるため商品を変更していません。";
+            continue;
+        }
         $catV  = $get($row, 'category');
         $name  = $get($row, 'name');
         $price = $get($row, 'price');
@@ -175,7 +285,9 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         // 省略列は既存値を保つ。両列の最終状態を検証してから画像を処理する。
         $existing = $idx >= 0 ? $data['products'][$idx] : [];
         $groupsInput = array_key_exists('sku_groups', $existing) ? $existing['sku_groups'] : [];
-        if (isset($map['sku_groups'])) {
+        if (isset($skuOverrides[$id])) {
+            $groupsInput = $skuOverrides[$id]['sku_groups'];
+        } elseif (isset($map['sku_groups'])) {
             $groupsRaw = $get($row, 'sku_groups');
             $groupsInput = $groupsRaw === '' ? [] : store_sku_decode_json_rows($groupsRaw);
         }
@@ -189,6 +301,10 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
         if (isset($map['skus'])) {
             $skusRaw = $get($row, 'skus');
             $skusInput = $skusRaw === '' ? [] : store_sku_decode_json_rows($skusRaw);
+        }
+        if (isset($skuOverrides[$id])) {
+            $groups = $skuOverrides[$id]['sku_groups'];
+            $skusInput = $skuOverrides[$id]['skus'];
         }
         $skus = store_parse_skus($skusInput, $skuError, $groups);
         if ($skus === false || ($groups && !$skus)) {
@@ -318,28 +434,102 @@ function import_apply_rows(array $dataRows, array $map, array $data, array $cats
     ];
 }
 
+/** SKUシートだけで既存商品の価格・仕様を更新する。商品情報はそのまま残す。 */
+function import_apply_sku_only(array $data, array $overrides, array $skipCodes = []) {
+    $updated = 0;
+    $errors = [];
+    foreach ($overrides as $code => $skuData) {
+        if (isset($skipCodes[$code])) { continue; }
+        $index = store_find_index($data['products'], $code);
+        if ($index < 0) {
+            $errors[] = "SKUシート（{$code}）: 商品CODEが見つかりません。";
+            continue;
+        }
+        $prices = store_product_prices($skuData);
+        $data['products'][$index]['sku_groups'] = $skuData['sku_groups'];
+        $data['products'][$index]['skus'] = $skuData['skus'];
+        $data['products'][$index]['price'] = $prices['price'];
+        $data['products'][$index]['price_max'] = $prices['price_max'];
+        $updated++;
+    }
+    return ['data' => $data, 'updated' => $updated, 'rowErrors' => $errors];
+}
+
+function import_apply_workbook(array $parsed, array $data, array $cats) {
+    $sheet = import_parse_sheet_rows($parsed['rows']);
+    $skuSheet = isset($parsed['sku_rows']) && $parsed['sku_rows'] !== null
+        ? import_parse_sku_sheet_rows($parsed['sku_rows'])
+        : ['by_code' => [], 'invalid' => [], 'rowErrors' => []];
+    if (!empty($sheet['error']) || !empty($skuSheet['error'])) {
+        return ['error' => !empty($sheet['error']) ? $sheet['error'] : $skuSheet['error']];
+    }
+    $mainCodes = [];
+    foreach ($sheet['rows'] as $row) {
+        if (!is_array($row)) { continue; }
+        $code = trim((string)($row[$sheet['map']['id']] ?? ''));
+        if ($code !== '') {
+            if (isset($mainCodes[$code], $skuSheet['by_code'][$code]) && !isset($skuSheet['invalid'][$code])) {
+                $skuSheet['invalid'][$code] = true;
+                $skuSheet['rowErrors'][] = "商品シート（{$code}）: CODEが重複しています。商品シートは1商品1行にしてください。";
+            }
+            $mainCodes[$code] = true;
+        }
+    }
+    $result = import_apply_rows($sheet['rows'], $sheet['map'], $data, $cats, !empty($parsed['from_csv']), $skuSheet['by_code'], $skuSheet['invalid']);
+    $skipCodes = $skuSheet['invalid'] + $mainCodes;
+    $skuOnly = import_apply_sku_only($result['data'], $skuSheet['by_code'], $skipCodes);
+    $result['data'] = $skuOnly['data'];
+    $result['updated'] += $skuOnly['updated'];
+    $result['rowErrors'] = array_merge($result['rowErrors'], $skuSheet['rowErrors'], $skuOnly['rowErrors']);
+    return $result;
+}
+
+function import_build_sku_sheet_rows(array $products) {
+    $rows = [import_sku_sheet_header()];
+    foreach ($products as $product) {
+        $groups = store_product_sku_groups($product);
+        foreach (store_product_skus($product) as $sku) {
+            $fields = array_fill(0, 6, '');
+            if ($groups) {
+                foreach ($groups as $index => $group) {
+                    $fields[$index * 2] = $group['name'];
+                    $fields[$index * 2 + 1] = $sku['options'][$index];
+                }
+            } else {
+                $fields[1] = $sku['name'];
+            }
+            $rows[] = array_map('strval', [
+                $product['id'], $fields[0], $fields[1], $sku['price'],
+                $fields[2], $fields[3], $fields[4], $fields[5], $sku['id'], $sku['name'],
+            ]);
+        }
+    }
+    return $rows;
+}
+
 /** エクスポート用の行（ヘッダー含む） */
-function import_build_export_rows(array $products) {
+function import_build_export_rows(array $products, $escape = true) {
+    $cell = $escape ? 'import_escape_cell' : 'strval';
     $header = import_column_names();
     $rows = [$header];
     foreach ($products as $p) {
         $imgs = array_slice($p['images'] ?? [], 0, IMPORT_IMG_MAX);
         $rows[] = array_merge([
-            import_escape_cell($p['id']),
-            import_escape_cell($p['category']),
-            import_escape_cell($p['name']),
-            import_escape_cell($p['tag'] ?? ''),
-            import_escape_cell($p['price']),
-            import_escape_cell($p['price_max'] ?? ''),
-            import_escape_cell(json_encode(store_product_skus($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
-            import_escape_cell(json_encode(store_product_sku_groups($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
-            import_escape_cell($p['badge'] ?? ''),
-            import_escape_cell($p['icon'] ?? 'fa-box'),
-            import_escape_cell($p['accent'] ?? '#DEF13F'),
-            import_escape_cell($p['desc'] ?? ''),
-            import_escape_cell($p['rating'] ?? 0),
-            import_escape_cell($p['reviews'] ?? 0),
-        ], array_map('import_escape_cell', array_pad($imgs, IMPORT_IMG_MAX, '')));
+            $cell($p['id']),
+            $cell($p['category']),
+            $cell($p['name']),
+            $cell($p['tag'] ?? ''),
+            $cell($p['price']),
+            $cell($p['price_max'] ?? ''),
+            $cell(json_encode(store_product_skus($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            $cell(json_encode(store_product_sku_groups($p), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+            $cell($p['badge'] ?? ''),
+            $cell($p['icon'] ?? 'fa-box'),
+            $cell($p['accent'] ?? '#DEF13F'),
+            $cell($p['desc'] ?? ''),
+            $cell($p['rating'] ?? 0),
+            $cell($p['reviews'] ?? 0),
+        ], array_map($cell, array_pad($imgs, IMPORT_IMG_MAX, '')));
     }
     return $rows;
 }
@@ -375,9 +565,50 @@ function import_sample_rows(array $cats) {
     return $rows;
 }
 
-function import_send_xlsx($filename, array $rows) {
+function import_xlsx_product_rows(array $rows) {
+    $header = $rows[0] ?? [];
+    $omit = [];
+    foreach (['skus', 'sku_groups'] as $column) {
+        $index = array_search($column, $header, true);
+        if ($index !== false) { $omit[] = $index; }
+    }
+    return array_map(function ($row) use ($omit) {
+        return array_values(array_diff_key($row, array_flip($omit)));
+    }, $rows);
+}
+
+function import_sample_xlsx_product_rows(array $cats) {
+    return import_xlsx_product_rows(import_sample_rows($cats));
+}
+
+function import_sample_grouped_product(array $cats) {
+    $rows = import_sample_rows($cats);
+    $row = $rows[3];
+    return ['id' => $row[0], 'sku_groups' => json_decode($row[7], true), 'skus' => json_decode($row[6], true)];
+}
+
+/** 文字列をそのまま保存し、日付・数値・書式タグ・数式への自動変換を防ぐ。 */
+function import_xlsx_text_rows(array $rows) {
+    return array_map(function ($row) {
+        return array_map(function ($value) {
+            return is_int($value) || is_float($value) ? $value : "\0" . (string)$value;
+        }, $row);
+    }, $rows);
+}
+
+function import_create_xlsx(array $rows, ?array $skuRows = null) {
     require_once __DIR__ . '/SimpleXLSXGen.php';
-    \Shuchkin\SimpleXLSXGen::fromArray($rows, '商品')->downloadAs($filename);
+    $workbook = \Shuchkin\SimpleXLSXGen::fromArray(import_xlsx_text_rows($rows), '商品')->freezePanes('A2');
+    if ($skuRows !== null) {
+        $workbook->addSheet(import_xlsx_text_rows($skuRows), 'SKU');
+        $workbook->setColWidth('A', 20)->setColWidth('B:C', 17)->setColWidth('D', 15)
+            ->setColWidth('E:H', 17)->setColWidth('I:J', 22)->freezePanes('A2');
+    }
+    return $workbook;
+}
+
+function import_send_xlsx($filename, array $rows, ?array $skuRows = null) {
+    import_create_xlsx($rows, $skuRows)->downloadAs($filename);
     exit;
 }
 

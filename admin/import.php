@@ -14,7 +14,7 @@ if ($action === 'template' || $action === 'sample') {
     if ($format === 'csv') {
         import_send_csv('products_sample.csv', $rows);
     }
-    import_send_xlsx('products_sample.xlsx', $rows);
+    import_send_xlsx('products_sample.xlsx', import_sample_xlsx_product_rows($cats), import_build_sku_sheet_rows([import_sample_grouped_product($cats)]));
 }
 
 if ($action === 'export') {
@@ -22,7 +22,7 @@ if ($action === 'export') {
     if ($format === 'csv') {
         import_send_csv('products_export_' . date('Ymd_His') . '.csv', $rows);
     }
-    import_send_xlsx('products_export_' . date('Ymd_His') . '.xlsx', $rows);
+    import_send_xlsx('products_export_' . date('Ymd_His') . '.xlsx', import_xlsx_product_rows(import_build_export_rows($data['products'], false)), import_build_sku_sheet_rows($data['products']));
 }
 
 /* ---------------- アップロード取込 ---------------- */
@@ -49,18 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($parsed['error'])) {
             $errors[] = $parsed['error'];
-        } else {
-            $sheet = import_parse_sheet_rows($parsed['rows']);
-            if (!empty($sheet['error'])) {
-                $errors[] = $sheet['error'];
+        } elseif (!$errors) {
+            $result = import_apply_workbook($parsed, $data, $cats);
+            if (!empty($result['error'])) {
+                $errors[] = $result['error'];
             } else {
-                $result = import_apply_rows(
-                    $sheet['rows'],
-                    $sheet['map'],
-                    $data,
-                    $cats,
-                    !empty($parsed['from_csv'])
-                );
                 $data = $result['data'];
                 if ($result['added'] + $result['updated'] > 0) {
                     if (store_save($data)) {
@@ -126,18 +119,21 @@ admin_head(__('page.import'));
     <a href="import.php?action=sample&amp;format=csv" class="adm-btn" title="UTF-8 CSV"><i class="fa-solid fa-file-csv"></i> サンプル CSV</a>
     <a href="import.php?action=export&amp;format=csv" class="adm-btn" title="UTF-8 CSV"><i class="fa-solid fa-file-csv"></i> CSV 出力</a>
   </div>
-  <p class="adm-note">「SAMPLE-003」はカラー×サイズ別のSKU価格例です。「SAMPLE-001・002」の画像パスはダミーなので、取り込む前に差し替えるか空欄にしてください。</p>
+  <p class="adm-note">Excel は「商品」と「SKU」の2シート。SKUは1組み合わせ1行、CODEで商品に紐づけます。「SAMPLE-001・002」の画像パスはダミーです。CSVは従来のJSON形式です。</p>
 
   <hr style="border:none;border-top:1px solid var(--border);margin:24px 0;">
 
   <h3 style="font-size:15px;margin-bottom:14px;color:var(--heading);">2. ファイルをアップロード</h3>
-  <p class="adm-note">
+  <div class="adm-note">
     商品番号（id）が既存と一致する行は<strong>更新</strong>、一致しない行は<strong>新規追加</strong>されます。<br>
-    1行目はヘッダー：<code>id, category, name, tag, price, price_max, skus, sku_groups, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。<br>
+    Excel の「商品」シートは <code>id, category, name, tag, price, price_max, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。SKUのある商品は価格を空欄にできます。既存商品のSKUだけ変える場合は「SKU」シートのみ行を追加し、商品シートはヘッダーだけ残してください。同じ CODE の SKU 行は一括で置き換えます。該当 CODE にSKU行がなければ既存SKUを保持します。<br>
+    「SKU」シートの列は <code>CODE, タイトル1, 内容1, 価格, タイトル2, 内容2, タイトル3, 内容3, SKU番号, 表示名</code>。単一仕様なら先頭4列だけ入力します。SKU番号・表示名は任意で、空欄なら自動生成します。タイトルと内容は左から順に入力し、同じCODEではタイトルと順序をそろえてください。最大3グループ、各30選択肢、1商品100SKUです。未知のCODEや重複した組み合わせは取り込まずエラーを表示します。<br>
+    <details><summary>旧CSV・旧ExcelのJSON列について</summary>
+    旧形式の表頭は <code>id, category, name, tag, price, price_max, skus, sku_groups, badge, icon, accent, desc, rating, reviews, image1 … image20</code>。2シートある場合は同じCODEの「SKU」シートを優先します。<br>
     <code>skus</code> は任意列です。JSON 配列（例：<code>[{"id":"A","name":"白 / S","price":1000}]</code>）で指定し、各 SKU の価格から商品価格を自動計算します。最大100件、番号は同一商品内で大文字・小文字を区別せず一意にしてください。<br>
     <code>sku_groups</code> も任意列です。例：<code>[{"name":"カラー","options":["RED","BLUE"]},{"name":"サイズ","options":["S","M"]}]</code>。最大3グループ・各30選択肢、グループ名は60文字、選択肢は100文字までで、グループ名および同一グループ内の選択肢は重複できません。<br>
     グループがある SKU は <code>options</code> をグループ順に指定します（例：<code>[{"id":"RED-M","name":"","price":1200,"options":["RED","M"]}]</code>）。SKU 名が空なら選択肢を「 / 」でつなぎます。グループありは400文字、従来 SKU は200文字まで。組み合わせは一意で、一部の組み合わせだけ登録できます。<br>
-    各列自体がない場合は既存のグループ・SKU を維持し、列の空欄または <code>[]</code> はその項目を解除します。グループだけ残して SKU を空にすることや、グループを解除して <code>options</code> を残すことはできません。組み合わせが一致しない行は、画像のダウンロード前に行全体をスキップします。両方解除する場合は両列を空欄または <code>[]</code> にしてください。<br>
+    各列自体がない場合は既存のグループ・SKU を維持し、列の空欄または <code>[]</code> はその項目を解除します。グループだけ残して SKU を空にすることや、グループを解除して <code>options</code> を残すことはできません。組み合わせが一致しない行は、画像のダウンロード前に行全体をスキップします。両方解除する場合は両列を空欄または <code>[]</code> にしてください。</details>
     <code>price</code> は必須列ですが、SKU がある行では値を空欄にできます。SKU がない場合は最低価格（必須）、<code>price_max</code> は最高価格（任意）です。価格は0〜2147483647の半角整数で、最高価格は最低価格以上にしてください。<br>
     SKU がない行の <code>price_max</code> 列の空欄は最高価格を解除し、単一価格になります。旧ファイルなどで列自体がない場合、既存商品の最高価格は維持され、新規商品は単一価格になります。維持する最高価格を最低価格が超える行は取り込めません。<br>
     <code>category</code> はキー（<?= htmlspecialchars(implode(' / ', array_keys($cats))) ?>）または名称。<br>
@@ -146,7 +142,7 @@ admin_head(__('page.import'));
     全画像欄が空なら既存画像を維持し、1枚でも指定すると指定順の画像一覧に置き換えます。ダウンロード等に失敗した行は商品を変更せずスキップします。<br>
     外部画像は1回につき最大50URL・ダウンロード時間予算20秒で処理します（DNS問い合わせやサーバー保存に別途時間がかかる場合があります）。上限に達した場合は成功済みの行を除き、小分けに再取り込みしてください。途中までダウンロードされた画像は画像管理に残る場合があります。<br>
     PHP cURL 拡張が必要です。ログイン必須・アクセス制限付き・転送URLは利用できません。転送の場合は最終的な画像URLを指定してください。
-  </p>
+  </div>
   <form method="post" enctype="multipart/form-data" id="importForm">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($token) ?>">
     <div class="adm-field">
