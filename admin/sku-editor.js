@@ -54,6 +54,7 @@
     target.querySelectorAll('select').forEach(function (s) { previous.set(s.dataset.groupKey, s.value); });
     target.textContent = '';
     target.hidden = !groups.length;
+    row.classList.toggle('has-groups', groups.length > 0);
     groups.forEach(function (group, gi) {
       var field = document.createElement('div'); field.className = 'adm-sku-field';
       var label = document.createElement('label'); label.textContent = group.name;

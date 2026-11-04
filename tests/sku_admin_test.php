@@ -52,7 +52,18 @@ register_shutdown_function(function () use ($case, $fixtureRoot, $sessionFile, $
     elseif ($case === 'remove') { $passed = $saved['skus'] === [] && $saved['price'] === 2000 && $saved['price_max'] === null; }
     elseif ($case === 'zero') { $passed = count($saved['skus']) === 2 && $saved['price'] === 0 && $saved['price_max'] === null; }
     elseif ($case === 'groups') { $passed = count($saved['sku_groups']) === 2 && $saved['skus'][0]['name'] === 'RED / S' && $saved['skus'][1]['options'] === ['BLUE', 'M'] && $saved['price'] === 1000 && $saved['price_max'] === 1500; }
-    elseif (!in_array($case, ['render', 'render-groups'], true)) { $passed = $saved === $original && strpos($html, 'adm-flash-err') !== false && strpos($html, 'id="skuRows"') !== false; }
+    elseif (in_array($case, ['render', 'render-groups'], true)) {
+        $dom = new DOMDocument();
+        @$dom->loadHTML($html);
+        $query = new DOMXPath($dom);
+        $passed = $query->query('//*[@id="skuEditor"]//details[not(@open)]/summary')->length === 1
+            && $query->query('//*[@id="skuAdd"]')->length === 1
+            && $query->query('//*[@id="skuGenerate"]')->length === 1
+            && $query->query('//*[@id="skuRows"]//*[@data-sku-field="price"]')->length === 2
+            && $query->query('//*[@id="skuRows"]//*[@data-sku-field="id"]')->length === 2
+            && ($case !== 'render-groups' || $query->query('//*[@id="skuRows"]//select')->length === 4);
+    }
+    else { $passed = $saved === $original && strpos($html, 'adm-flash-err') !== false && strpos($html, 'id="skuRows"') !== false; }
     session_write_close();
     // 既知の隔離ファイルのみ削除する。
     foreach ([$sessionFile, STORE_FILE, $fixtureRoot . '/config.php'] as $file) {

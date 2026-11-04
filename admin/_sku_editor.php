@@ -3,8 +3,8 @@
 function admin_sku_row($row, $index, $groups = []) {
     $key = (string)$index;
     ?>
-    <div class="adm-sku-row" data-row-index="<?= $key ?>">
-      <div class="adm-sku-field">
+    <div class="adm-sku-row<?= $groups ? ' has-groups' : '' ?>" data-row-index="<?= $key ?>">
+      <div class="adm-sku-field adm-sku-id-field">
         <label for="sku-<?= $key ?>-id"><?= htmlspecialchars(__('sku.id')) ?></label>
         <input type="text" id="sku-<?= $key ?>-id" name="skus[<?= $key ?>][id]" data-sku-field="id" value="<?= htmlspecialchars((string)($row['id'] ?? '')) ?>" maxlength="64" pattern="[A-Za-z0-9_-]{1,64}" placeholder="A">
       </div>
@@ -12,11 +12,6 @@ function admin_sku_row($row, $index, $groups = []) {
         <label for="sku-<?= $key ?>-name"><?= htmlspecialchars(__('sku.name')) ?></label>
         <input type="text" id="sku-<?= $key ?>-name" name="skus[<?= $key ?>][name]" data-sku-field="name" value="<?= htmlspecialchars((string)($row['name'] ?? '')) ?>" maxlength="<?= $groups ? 400 : 200 ?>" placeholder="<?= htmlspecialchars(__('sku.name_ph')) ?>">
       </div>
-      <div class="adm-sku-field">
-        <label for="sku-<?= $key ?>-price"><?= htmlspecialchars(__('sku.price')) ?></label>
-        <input type="number" id="sku-<?= $key ?>-price" name="skus[<?= $key ?>][price]" data-sku-field="price" value="<?= htmlspecialchars((string)($row['price'] ?? '')) ?>" min="0" max="2147483647" step="1" placeholder="1000">
-      </div>
-      <button type="button" class="adm-btn adm-btn-sm adm-sku-remove" aria-label="<?= htmlspecialchars(__('sku.remove')) ?>"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span><?= htmlspecialchars(__('sku.remove')) ?></span></button>
       <div class="adm-sku-options" <?= !$groups ? 'hidden' : '' ?>>
       <?php foreach ($groups as $gi => $group): $selected = (string)($row['options'][$gi] ?? ''); ?>
         <div class="adm-sku-field">
@@ -29,6 +24,11 @@ function admin_sku_row($row, $index, $groups = []) {
         </div>
       <?php endforeach; ?>
       </div>
+      <div class="adm-sku-field adm-sku-price-field">
+        <label for="sku-<?= $key ?>-price"><?= htmlspecialchars(__('sku.price')) ?></label>
+        <input type="number" id="sku-<?= $key ?>-price" name="skus[<?= $key ?>][price]" data-sku-field="price" value="<?= htmlspecialchars((string)($row['price'] ?? '')) ?>" min="0" max="2147483647" step="1" placeholder="1000">
+      </div>
+      <button type="button" class="adm-btn adm-btn-sm adm-sku-remove" aria-label="<?= htmlspecialchars(__('sku.remove')) ?>" title="<?= htmlspecialchars(__('sku.remove')) ?>"><span aria-hidden="true">×</span></button>
     </div>
     <?php
 }
@@ -41,28 +41,33 @@ function admin_sku_group_row($group, $index) {
       </div>
       <div class="adm-sku-field">
         <label for="sku-group-<?= $index ?>-options"><?= htmlspecialchars(__('sku.group_options')) ?></label>
-        <textarea id="sku-group-<?= $index ?>-options" name="sku_groups[<?= $index ?>][options_text]" class="js-sku-group-options" rows="2" placeholder="RED, BLUE, BLACK"><?= htmlspecialchars(implode(', ', $group['options'] ?? [])) ?></textarea>
+        <textarea id="sku-group-<?= $index ?>-options" name="sku_groups[<?= $index ?>][options_text]" class="js-sku-group-options" rows="1" placeholder="RED, BLUE, BLACK"><?= htmlspecialchars(implode(', ', $group['options'] ?? [])) ?></textarea>
       </div>
-      <button type="button" class="adm-btn adm-btn-sm js-sku-group-remove"><?= htmlspecialchars(__('sku.remove')) ?></button>
+      <button type="button" class="adm-btn adm-btn-sm js-sku-group-remove" aria-label="<?= htmlspecialchars(__('sku.remove')) ?>" title="<?= htmlspecialchars(__('sku.remove')) ?>"><span aria-hidden="true">×</span></button>
     </div>
     <?php
 }
 ?>
 <section class="adm-sku-editor" id="skuEditor" aria-labelledby="skuEditorTitle">
-  <div class="adm-sku-heading"><h3 id="skuEditorTitle"><?= htmlspecialchars(__('sku.title')) ?></h3><span>SKU</span></div>
-  <p class="adm-note"><?= htmlspecialchars(__('sku.hint')) ?></p>
+  <div class="adm-sku-heading">
+    <h3 id="skuEditorTitle"><?= htmlspecialchars(__('sku.title')) ?></h3>
+    <details class="adm-sku-help">
+      <summary><?= htmlspecialchars(__('sku.help')) ?></summary>
+      <div class="adm-sku-help-body">
+        <p><?= htmlspecialchars(__('sku.hint')) ?></p>
+        <p><?= htmlspecialchars(__('sku.groups_hint')) ?></p>
+        <p><?= htmlspecialchars(__('sku.generate_hint')) ?></p>
+      </div>
+    </details>
+  </div>
   <div class="adm-sku-groups">
-    <h4><?= htmlspecialchars(__('sku.groups_title')) ?></h4>
-    <p class="adm-note"><?= htmlspecialchars(__('sku.groups_hint')) ?></p>
+    <div class="adm-sku-heading"><h4><?= htmlspecialchars(__('sku.groups_title')) ?></h4><button type="button" class="adm-btn adm-btn-sm" id="skuGroupAdd">+ <?= htmlspecialchars(__('sku.group_add')) ?></button></div>
     <div id="skuGroupRows"><?php foreach ($skuGroupRows as $gi => $group) { admin_sku_group_row($group, $gi); } ?></div>
-    <button type="button" class="adm-btn adm-btn-sm" id="skuGroupAdd"><?= htmlspecialchars(__('sku.group_add')) ?></button>
     <p id="skuGroupStatus" class="adm-sku-status" role="status"></p>
   </div>
-  <div class="adm-sku-heading"><h4><?= htmlspecialchars(__('sku.combinations_title')) ?></h4><button type="button" class="adm-btn adm-btn-sm" id="skuGenerate"><?= htmlspecialchars(__('sku.generate')) ?></button></div>
-  <p class="adm-note"><?= htmlspecialchars(__('sku.generate_hint')) ?></p>
+  <div class="adm-sku-heading"><h4><?= htmlspecialchars(__('sku.combinations_title')) ?></h4><div class="adm-sku-actions"><button type="button" class="adm-btn adm-btn-sm" id="skuGenerate"><?= htmlspecialchars(__('sku.generate')) ?></button><button type="button" class="adm-btn adm-btn-sm" id="skuAdd">+ <?= htmlspecialchars(__('sku.add')) ?></button></div></div>
   <div id="skuRows"><?php foreach ($skuRows as $i => $row) { admin_sku_row($row, $i, $skuGroupRows); } ?></div>
   <p class="adm-note" id="skuEmpty" <?= $skuRows ? 'hidden' : '' ?>><?= htmlspecialchars(__('sku.empty')) ?></p>
-  <button type="button" class="adm-btn" id="skuAdd"><i class="fa-solid fa-plus" aria-hidden="true"></i> <?= htmlspecialchars(__('sku.add')) ?></button>
   <p class="adm-sku-status" id="skuStatus" role="status" data-incomplete="<?= htmlspecialchars(__('sku.incomplete')) ?>" data-limit="<?= htmlspecialchars(__('sku.limit')) ?>"></p>
 </section>
 <template id="skuRowTemplate"><?php admin_sku_row([], '__INDEX__'); ?></template>
